@@ -27,7 +27,7 @@
       <div class="doc-title">📚 已解析文档（{{ documents.length }}）</div>
       <div class="doc-list">
         <div v-for="d in documents" :key="d.doc_id" class="doc-list-item">
-          <span class="doc-name" :title="d.filename">{{ d.filename }}</span>
+          <span class="doc-name" :title="d.filename">{{ d.filename }}<small class="doc-chunks">（{{ d.chunk_count }} 块）</small></span>
           <button class="btn-icon" @click="deleteDocument(d.doc_id)" title="删除文档">✕</button>
         </div>
         <div v-if="!documents.length" style="padding:8px 4px;">暂无文档，先上传再提问</div>
@@ -148,16 +148,31 @@ async function uploadFiles(event) {
   const files = event.target.files
   if (!files || !files.length) return
   uploadStatus.value = '上传中...'
+  const ok = []
+  const skipped = []
   try {
     for (const file of files) {
+      // 本地预检（file.size 是元数据，零 IO）：超限文件不发请求，
+      // 避免几十 MB 传到一半被 Tomcat 掐断（表现为 Network Error，后端文案无法送达）；
+      // 20MB 与后端 multipart / 引擎 MAX_UPLOAD_SIZE_MB 三处对齐，改限制需同步
+      if (file.size > 20 * 1024 * 1024) {
+        skipped.push(`${file.name}（文件超过 20MB 限制，请压缩后重新上传）`)
+        continue
+      }
       const form = new FormData()
       form.append('file', file)
-      await request.post('/documents/upload', form, {
+      const resp = await request.post('/documents/upload', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
+      // 后端透传引擎的解析结果：文件名 + 分块数
+      const d = resp.data.data
+      ok.push(d && d.chunk_count != null ? `${d.filename}（${d.chunk_count} 块）` : file.name)
     }
-    uploadStatus.value = `已上传 ${files.length} 个文件`
-    loadDocuments()
+    const msg = []
+    if (ok.length) msg.push(`已上传 ${ok.length} 个文件：${ok.join('、')}`)
+    if (skipped.length) msg.push(`${skipped.length} 个未上传：${skipped.join('、')}`)
+    uploadStatus.value = msg.join('；')
+    if (ok.length) loadDocuments()
   } catch (e) {
     uploadStatus.value = '上传失败: ' + (e.response?.data?.message || e.message)
   } finally {

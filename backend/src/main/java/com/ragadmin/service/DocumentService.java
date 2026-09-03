@@ -37,10 +37,16 @@ public class DocumentService {
 
     /** 文档列表（只读视图） */
     public DocumentListResponse list() {
-        return restClient.get()
-                .uri(aiServiceUrl + "/api/v1/documents/")
-                .retrieve()
-                .body(DocumentListResponse.class);
+        try {
+            return restClient.get()
+                    .uri(aiServiceUrl + "/api/v1/documents/")
+                    .retrieve()
+                    .body(DocumentListResponse.class);
+        } catch (ResourceAccessException e) {
+            // 引擎不可达：与 delete/upload 及 ChatService 一致的降级（友好提示而非 500）
+            log.warn("AI 服务不可达: {}", e.getMessage());
+            throw new BusinessException(503, "AI 服务暂时不可用，请稍后再试");
+        }
     }
 
     /** 删除文档（级联删除向量索引） */
