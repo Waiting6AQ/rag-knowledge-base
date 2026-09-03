@@ -1,4 +1,4 @@
-# 多 Agent 智能客服系统 - 容器化编排
+# RAG 知识库问答系统 - 容器化编排
 # 启动：docker compose up -d --build
 # 配置：同目录 .env（DB_PASSWORD、DASHSCOPE_API_KEY）
 services:
@@ -16,7 +16,7 @@ services:
       retries: 10
 
   engine:
-    build: ./agent_engine
+    build: ./rag_engine
     environment:
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:?请在 .env 设置 DASHSCOPE_API_KEY}
     # 不暴露端口：内网服务，只有 backend 能访问（"Python 不出内网"在部署层落地）
@@ -28,7 +28,9 @@ services:
       - "8081:8081"
     environment:
       DB_PASSWORD: ${DB_PASSWORD:?}
-      JWT_SECRET: ${JWT_SECRET:-rag-admin-jwt-secret-key}
+      # 容器内没有 localhost：JDBC 走服务名 mysql（本地开发默认 localhost）
+      DB_URL: jdbc:mysql://mysql:3306/rag_admin?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+      JWT_SECRET: ${JWT_SECRET:-rag-admin-jwt-secret-key-change-me-in-production-2026}   # ≥32 字符，否则 jjwt 拒绝启动
       # 容器内用服务名通信（本地开发是 localhost）
       AI_SERVICE_URL: http://engine:8000
     depends_on:
