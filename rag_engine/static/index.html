@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG 知识库问答系统</title>
+<style>
+/* ================== 全局变量 ================== */
+:root {
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #e2e8f0;
+  --sidebar-text-main: #334155;
+  --sidebar-text-muted: #64748b;
+  --sidebar-hover: #f1f5f9;
+  --sidebar-active: #e0e7ff;
+  --main-bg: #f4f7fb;
+  --main-grid-color: rgba(99, 102, 241, 0.05);
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  --border-light: #e2e8f0;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--main-bg); color: var(--text-main);
+  height: 100vh; display: flex; overflow: hidden;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ================== 侧边栏 ================== */
+.sidebar {
+  width: 280px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f0f4e8 40%, #e8efe0 100%);
+  color: var(--sidebar-text-main);
+  display: flex; flex-direction: column; border-right: 1px solid var(--sidebar-border);
+  transition: all 0.3s ease; z-index: 10; box-shadow: var(--shadow-sm);
+}
+.sidebar h2 {
+  padding: 24px 20px; font-size: 18px; font-weight: 600;
+  letter-spacing: 0.5px; display: flex; align-items: center; gap: 10px; color: var(--primary);
+}
+.sidebar nav { flex: 1; overflow-y: auto; padding: 0 12px 12px; }
+.sidebar nav a {
+  display: block; padding: 10px 16px; color: var(--sidebar-text-main);
+  text-decoration: none; border-radius: var(--radius-sm); margin-bottom: 6px;
+  cursor: pointer; transition: all 0.2s ease; font-size: 14px;
+}
+.sidebar nav a:hover { background: var(--sidebar-hover); }
+.sidebar nav a.active {
+  background: var(--sidebar-active); color: var(--primary);
+  font-weight: 600; box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.upload-area { padding: 16px 16px; border-top: 1px solid var(--sidebar-border); background: #f8fafc; }
+.upload-area label {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 12px; border: 1px dashed #94a3b8; border-radius: var(--radius-md);
+  cursor: pointer; transition: all 0.3s ease; background: white;
+}
+.upload-area label .upload-title {
+  display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500;
+  color: var(--sidebar-text-main);
+}
+.upload-area label small { display: block; margin-top: 4px; color: var(--sidebar-text-muted); font-size: 12px; }
+.upload-area label:hover { border-color: var(--primary); background: rgba(79, 70, 229, 0.05); }
+.upload-area input { display: none; }
+
+.doc-section { padding: 16px; border-top: 1px solid var(--sidebar-border); height: 35%; display: flex; flex-direction: column; }
+.doc-section .doc-title { font-size: 12px; font-weight: 600; color: var(--sidebar-text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+#doc-list { flex: 1; overflow-y: auto; font-size: 13px; color: var(--sidebar-text-muted); }
+
+.btn-icon {
+  background: none; border: none; color: #94a3b8; cursor: pointer;
+  width: 24px; height: 24px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; font-size: 13px; flex-shrink: 0;
+}
+.btn-icon:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+.conv-item {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.conv-item a {
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  margin-bottom: 0 !important; padding: 10px 12px !important;
+}
+
+.doc-list-item {
+  margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px; background: white; border: 1px solid var(--border-light);
+  border-radius: 6px; box-shadow: var(--shadow-sm);
+}
+
+/* ================== 主区域 ================== */
+.main {
+  flex: 1; display: flex; flex-direction: column; position: relative;
+  background-image:
+    linear-gradient(var(--main-grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--main-grid-color) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+.header {
+  background: rgba(244, 247, 251, 0.85); backdrop-filter: blur(12px);
+  padding: 16px 32px; border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  font-weight: 600; color: var(--text-main);
+  display: flex; justify-content: center; align-items: center; z-index: 5;
+}
+
+/* ================== 状态栏 ================== */
+.status-bar {
+  padding: 4px 32px 0;
+  font-size: 12px; color: var(--text-muted);
+  transition: opacity 0.3s ease;
+}
+
+/* ================== 聊天区域 ================== */
+.chat-area {
+  flex: 1; overflow-y: auto; padding: 32px 48px 60px;
+  display: flex; flex-direction: column; gap: 24px; scroll-behavior: smooth;
+  background: radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.03) 0%, transparent 60%);
+}
+.chat-area .msg {
+  width: 100%; max-width: 860px;
+}
+.msg.user {
+  align-self: flex-end;
+}
+.msg.assistant {
+  align-self: flex-start;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.msg { display: flex; gap: 16px; animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.msg.user { flex-direction: row-reverse; }
+
+.msg .avatar {
+  width: 42px; height: 42px; border-radius: var(--radius-lg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0; box-shadow: var(--shadow-sm);
+}
+.msg.user .avatar { background: var(--primary-gradient); color: white; }
+.msg.assistant .avatar { background: white; border: 1px solid var(--border-light); }
+
+.msg .bubble-wrapper { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.msg.user .bubble-wrapper { align-items: flex-end; }
+
+.msg .bubble {
+  padding: 16px 22px; border-radius: var(--radius-lg); line-height: 1.8;
+  font-size: 15px; box-shadow: var(--shadow-sm); word-break: break-word;
+  white-space: pre-wrap;
+}
+.msg.user .bubble { background: var(--primary-gradient); color: white; border-bottom-right-radius: 4px; }
+.msg.assistant .bubble {
+  background: white; color: var(--text-main);
+  border: 1px solid var(--border-light); border-bottom-left-radius: 4px;
+}
+
+/* ================== 输入区 ================== */
+.input-wrapper {
+  padding: 0 32px 16px;
+  background: linear-gradient(to top, var(--main-bg) 80%, transparent);
+}
+.input-area {
+  max-width: 1100px; margin: 0 auto;
+  background: white; padding: 12px; border: 1px solid var(--border-light);
+  border-radius: 24px; display: flex; gap: 12px;
+  box-shadow: var(--shadow-lg); transition: all 0.3s ease;
+}
+.input-area:focus-within {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1), var(--shadow-lg);
+}
+.input-area input {
+  flex: 1; padding: 12px 16px; border: none; background: transparent;
+  font-size: 15px; outline: none; color: var(--text-main);
+}
+.input-area input::placeholder { color: #94a3b8; }
+.input-area button {
+  padding: 12px 28px; background: var(--primary-gradient); color: white;
+  border: none; border-radius: var(--radius-full); font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm);
+}
+.input-area button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.input-area button:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* ================== 来源标签 ================== */
+.source-tags {
+  margin-top: 4px; font-size: 12px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+}
+.source-tags .source-label { color: var(--text-muted); font-weight: 500; }
+.source-tags .file-tag {
+  display: inline-flex; align-items: center;
+  background: #f1f5f9; border: 1px solid #e2e8f0;
+  padding: 4px 12px; border-radius: var(--radius-full);
+  color: var(--primary); font-size: 12px; font-weight: 500; transition: all 0.2s;
+}
+.source-tags .file-tag:hover { background: #e2e8f0; }
+
+/* ================== 进度提示 ================== */
+.progress-msg {
+  color: var(--text-muted) !important; font-style: italic;
+  display: flex; align-items: center; gap: 8px;
+}
+.progress-msg::before {
+  content: ""; width: 14px; height: 14px;
+  border: 2px solid #cbd5e1; border-top-color: var(--primary);
+  border-radius: 50%; animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <h2><span style="font-size:22px">✨</span> RAG 知识库</h2>
+  <nav>
+    <a class="active" data-id="new" onclick="newChat()"><span style="margin-right:6px;">💬</span> 新对话</a>
+    <div id="conv-list" style="margin-top:12px;display:flex;flex-direction:column;gap:4px;"></div>
+  </nav>
+  <div class="upload-area">
+    <label for="file-upload">
+      <div class="upload-title"><span style="font-size:20px;">📁</span> 上传知识库文档</div>
+      <small>支持 .txt / .pdf / .md / .docx / .xlsx</small>
+    </label>
+    <input type="file" id="file-upload" accept=".txt,.pdf,.md,.docx,.xlsx" multiple onchange="uploadFiles()">
+    <div id="upload-status" style="font-size:12px;margin-top:8px;text-align:center;"></div>
+  </div>
+  <div class="doc-section">
+    <div class="doc-title">📚 已解析文档</div>
+    <div id="doc-list"></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="header">RAG 知识库问答系统</div>
+  <div class="chat-area" id="chat-area">
+    <div class="msg assistant">
+      <div class="avatar">🤖</div>
+      <div class="bubble-wrapper">
+        <div class="bubble">你好！我是 RAG 知识库问答助手。<br>请先上传文档，然后向我提问。我会基于文档内容为你解答。</div>
+      </div>
+    </div>
+  </div>
+  <div class="status-bar" id="status">就绪</div>
+  <div class="input-wrapper">
+    <div class="input-area">
+      <input id="question" placeholder="输入你的问题，按回车键发送..." onkeydown="if(event.key==='Enter') send()">
+      <button id="send-btn" onclick="send()">发送</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let conversationId = null;
+
+function setStatus(text) {
+  const statusEl = document.getElementById('status');
+  statusEl.textContent = text;
+  statusEl.style.opacity = '0';
+  setTimeout(() => { statusEl.style.opacity = '1'; }, 150);
+}
+
+// ======== 对话列表 ========
+async function loadConversations() {
+  try {
+    const r = await fetch('/api/v1/conversations/');
+    const data = await r.json();
+    const list = document.getElementById('conv-list');
+    list.innerHTML = data.conversations.map(c =>
+      `<div class="conv-item">
+        <a data-id="${c.conversation_id}" onclick="switchChat('${c.conversation_id}')">${c.title || '(空)'}</a>
+        <button class="btn-icon" onclick="deleteConv('${c.conversation_id}')" title="删除对话">✕</button>
+      </div>`
+    ).join('');
+  } catch(e) { console.error(e); }
+}
+
+function setActiveLink(id) {
+  document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
+  if (id) {
+    const link = document.querySelector(`.sidebar nav a[data-id="${id}"]`);
+    if (link) link.classList.add('active');
+  } else {
+    const newLink = document.querySelector('.sidebar nav a[data-id="new"]');
+    if (newLink) newLink.classList.add('active');
+  }
+}
+
+function newChat() {
+  conversationId = null;
+  history.replaceState(null, '', '/');
+  setActiveLink(null);
+  const area = document.getElementById('chat-area');
+  area.innerHTML = `<div class="msg assistant">
+    <div class="avatar">🤖</div>
+    <div class="bubble-wrapper">
+      <div class="bubble">你好！我是 RAG 知识库问答助手。<br>请先上传文档，然后向我提问。我会基于文档内容为你解答。</div>
+    </div>
+  </div>`;
+  setStatus('开始新对话');
+}
+
+async function deleteConv(id) {
+  if (!confirm('确定删除该对话？')) return;
+  try {
+    await fetch('/api/v1/conversations/' + id, { method: 'DELETE' });
+    loadConversations();
+    // 如果删除的是当前正在查看的对话，清空聊天区
+    if (conversationId === id) {
+      newChat();
+    }
+  } catch(e) { alert('删除失败: ' + e.message); }
+}
+
+async function switchChat(id) {
+  conversationId = id;
+  window.location.hash = id;
+  setActiveLink(id);
+  setStatus('加载对话...');
+  const area = document.getElementById('chat-area');
+  area.innerHTML = '';
+  try {
+    const r = await fetch('/api/v1/conversations/' + id);
+    const data = await r.json();
+    data.messages.forEach(m => addMessage(m.role, m.content, m.sources));
+    setStatus('对话: ' + (data.title || id));
+  } catch(e) {
+    setStatus('加载失败');
+  }
+}
+
+// ======== 文件上传 ========
+async function uploadFiles() {
+  const files = document.getElementById('file-upload').files;
+  if (!files.length) return;
+  const status = document.getElementById('upload-status');
+  status.textContent = '上传中...';
+  for (const f of files) {
+    const form = new FormData();
+    form.append('file', f);
+    try {
+      const r = await fetch('/api/v1/documents/upload', { method: 'POST', body: form });
+      const data = await r.json();
+      if (r.ok) {
+        status.textContent = data.renamed
+          ? `✅ 已有同名文件，已保存为 ${data.filename} (${data.chunk_count} 块)`
+          : `✅ ${data.filename} (${data.chunk_count} 块)`;
+      } else {
+        status.textContent = '❌ ' + (data.detail || '上传失败');
+      }
+    } catch(e) {
+      status.textContent = '❌ 上传失败: ' + e.message;
+    }
+  }
+  document.getElementById('file-upload').value = '';
+  loadDocuments();
+}
+
+// ======== 文档管理 ========
+async function loadDocuments() {
+  try {
+    const r = await fetch('/api/v1/documents/');
+    const data = await r.json();
+    const el = document.getElementById('doc-list');
+    if (!data.documents.length) {
+      el.innerHTML = '<div style="color:rgba(0,0,0,0.2);">暂无文档</div>';
+      return;
+    }
+    el.innerHTML = data.documents.map(d =>
+      `<div class="doc-list-item">
+        <span title="${d.filename}" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+          📄 ${d.filename} <span style="color:var(--sidebar-text-muted);font-size:11px;">(${d.chunk_count}块)</span>
+        </span>
+        <button class="btn-icon" onclick="deleteDoc('${d.doc_id}')" title="删除文档">🗑</button>
+      </div>`
+    ).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function deleteDoc(docId) {
+  if (!confirm('确定删除该文档？')) return;
+  try {
+    await fetch('/api/v1/documents/' + docId, { method: 'DELETE' });
+    loadDocuments();
+  } catch(e) { alert('删除失败: ' + e.message); }
+}
+
+// ======== 发送消息 ========
+async function send() {
+  const input = document.getElementById('question');
+  const q = input.value.trim();
+  if (!q) return;
+  input.value = '';
+  setStatus('处理中...');
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true;
+
+  addMessage('user', q);
+
+  try {
+    const r = await fetch('/api/v1/chat/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question: q,
+        conversation_id: conversationId,
+        temperature: 0.1,
+        top_k: 5,
+      }),
+    });
+
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let answer = '';
+    let sources = [];
+    const msgEl = addMessage('assistant', '');
+    const bubble = msgEl.querySelector('.bubble');
+    bubble.className += ' progress-msg';
+    bubble.textContent = '正在分析问题...';
+
+    let pendingEvent = null;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const text = decoder.decode(value, { stream: true });
+      for (const line of text.split('\n')) {
+        if (line.startsWith('event: ')) {
+          pendingEvent = line.slice(7).trim();
+        } else if (line.startsWith('data: ') && pendingEvent) {
+          const data = JSON.parse(line.slice(6));
+          const event = pendingEvent;
+          pendingEvent = null;
+
+          if (event === 'progress') {
+            bubble.textContent = data.status;
+          } else if (event === 'sources') {
+            sources = data;
+          } else if (event === 'done') {
+            conversationId = data.conversation_id;
+            window.location.hash = conversationId;
+            const confStr = data.confidence ? ` · 置信度 ${(data.confidence * 100).toFixed(0)}%` : '';
+            setStatus((data.rag_used ? '✅ RAG 检索完成' : '✅ 回答完成') + confStr);
+            if (sources.length) {
+              showSources(msgEl, sources);
+            }
+          }
+        } else if (line.startsWith('data: ')) {
+          const data = JSON.parse(line.slice(6));
+          if (!answer) {
+            bubble.className = bubble.className.replace(' progress-msg', '');
+          }
+          answer += data.token;
+          bubble.textContent = answer;
+        }
+      }
+    }
+    loadConversations();
+  } catch(e) {
+    addMessage('assistant', '❌ 出错了: ' + e.message);
+    setStatus('❌ 请求失败');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function addMessage(role, content, sources) {
+  const area = document.getElementById('chat-area');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = `
+    <div class="avatar">${role === 'user' ? '👤' : '🤖'}</div>
+    <div class="bubble-wrapper">
+      <div class="bubble">${content}</div>
+    </div>
+  `;
+  area.appendChild(div);
+  if (sources && sources.length) {
+    showSources(div, sources);
+  }
+  area.scrollTop = area.scrollHeight;
+  return div;
+}
+
+function showSources(msgEl, sources) {
+  const wrapper = msgEl.querySelector('.bubble-wrapper');
+  if (!wrapper) return;
+  const tagsDiv = document.createElement('div');
+  tagsDiv.className = 'source-tags';
+  tagsDiv.innerHTML = '<span class="source-label">📎 引用来源：</span>';
+  sources.forEach(s => {
+    const span = document.createElement('span');
+    span.className = 'file-tag';
+    span.textContent = '📄 ' + s.source;
+    tagsDiv.appendChild(span);
+  });
+  wrapper.appendChild(tagsDiv);
+}
+
+// 初始化
+(async function init() {
+  loadDocuments();
+  await loadConversations();
+  // 页面刷新后恢复对话（从 URL hash 读取 conversationId）
+  const hashId = window.location.hash.slice(1);
+  if (hashId) {
+    switchChat(hashId);
+  }
+})();
+</script>
+</body>
+</html>

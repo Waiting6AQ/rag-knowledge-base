@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: rag-admin
+  # 加载根目录 .env（DB_PASSWORD/JWT_SECRET 等敏感配置，已 gitignore；不存在也不报错）
+  config:
+    import: optional:file:.env[.properties],optional:file:backend/.env[.properties]
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # createDatabaseIfNotExist=true：自动建库（服务器默认字符集为 utf8mb4，中文正常）
+    # 如需手动建库，见 db/init.sql
+    url: jdbc:mysql://localhost:3306/rag_admin?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+    username: root
+    password: ${DB_PASSWORD}   # 必填：由 backend/.env 或环境变量提供（无 .env 启动即报错，fail fast）
+
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8   # 必须指定：中文 Windows 平台默认 GBK 读脚本会导致中文乱码
+      schema-locations: classpath:schema.sql
+
+  servlet:
+    multipart:
+      max-file-size: 20MB      # 对齐 rag_engine 的上传限制
+      max-request-size: 20MB
+
+  mvc:
+    async:
+      request-timeout: 600000   # SSE 异步超时 10 分钟（长流程问答可能跑很久，默认会掐断）
+
+server:
+  port: 8081
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+jwt:
+  secret: ${JWT_SECRET:rag-admin-jwt-secret-key-change-me-in-production-2026}
+  expire-hours: 168    # token 有效期 7 天
+
+app:
+  # 内部 AI 服务地址（rag_engine）
+  ai-service-url: ${AI_SERVICE_URL:http://localhost:8000}

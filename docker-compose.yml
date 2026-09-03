@@ -1,0 +1,48 @@
+# 多 Agent 智能客服系统 - 容器化编排
+# 启动：docker compose up -d --build
+# 配置：同目录 .env（DB_PASSWORD、DASHSCOPE_API_KEY）
+services:
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:?请在 .env 设置 DB_PASSWORD}
+      MYSQL_DATABASE: rag_admin
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  engine:
+    build: ./agent_engine
+    environment:
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:?请在 .env 设置 DASHSCOPE_API_KEY}
+    # 不暴露端口：内网服务，只有 backend 能访问（"Python 不出内网"在部署层落地）
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    ports:
+      - "8081:8081"
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD:?}
+      JWT_SECRET: ${JWT_SECRET:-rag-admin-jwt-secret-key}
+      # 容器内用服务名通信（本地开发是 localhost）
+      AI_SERVICE_URL: http://engine:8000
+    depends_on:
+      mysql:
+        condition: service_healthy
+      engine:
+        condition: service_started
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  mysql-data:

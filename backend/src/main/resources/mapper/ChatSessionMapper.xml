@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ragadmin.mapper.ChatSessionMapper">
+
+    <!--
+      分页查询
+      复杂 SQL（多表联查/动态条件）统一走 XML，注解式只放简单 CRUD
+    -->
+    <select id="selectPage" resultType="com.ragadmin.model.ChatSession">
+        SELECT id, user_id, conversation_id, title, created_at, updated_at
+        FROM chat_session
+        WHERE user_id = #{userId}
+        ORDER BY updated_at DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <!-- 统计总数：条件必须和 selectPage 完全一致，否则分页对不上 -->
+    <select id="countByUser" resultType="long">
+        SELECT COUNT(*)
+        FROM chat_session
+        WHERE user_id = #{userId}
+    </select>
+
+</mapper>

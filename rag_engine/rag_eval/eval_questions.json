@@ -1,0 +1,352 @@
+[
+  {
+    "id": "Q01",
+    "question": "什么是RAG？它解决什么问题？",
+    "expected_keywords": ["检索增强生成", "外部知识", "幻觉", "时效性"],
+    "expected_doc_source": "RAG技术介绍.md",
+    "category": "RAG基础"
+  },
+  {
+    "id": "Q02",
+    "question": "RAG系统的工作流程分为哪两个阶段？",
+    "expected_keywords": ["离线索引", "在线检索", "生成"],
+    "expected_doc_source": "RAG技术介绍.md",
+    "category": "RAG基础"
+  },
+  {
+    "id": "Q03",
+    "question": "文本分块时为什么要设置重叠？",
+    "expected_keywords": ["重叠", "Overlap", "语义单元", "边界"],
+    "expected_doc_source": "RAG技术介绍.md",
+    "category": "RAG技术"
+  },
+  {
+    "id": "Q04",
+    "question": "推荐的文本分块大小是多少？为什么？",
+    "expected_keywords": ["400", "600", "token", "分块大小"],
+    "expected_doc_source": "RAG技术介绍.md",
+    "category": "RAG技术"
+  },
+  {
+    "id": "Q05",
+    "question": "RecursiveCharacterTextSplitter是怎么切割文本的？",
+    "expected_keywords": ["递归", "段落", "换行", "优先级"],
+    "expected_doc_source": "RAG技术介绍.md",
+    "category": "RAG技术"
+  },
+  {
+    "id": "Q06",
+    "question": "什么是混合检索？为什么比单一检索更好？",
+    "expected_keywords": ["混合检索", "BM25", "向量检索", "RRF"],
+    "expected_doc_source": "RAG技术介绍.md",
+    "category": "RAG技术"
+  },
+  {
+    "id": "Q07",
+    "question": "RRF算法在混合检索中起什么作用？权重怎么分配？",
+    "expected_keywords": ["RRF", "0.6", "0.4", "融合", "权重"],
+    "expected_doc_source": "RAG技术介绍.md",
+    "category": "RAG技术"
+  },
+  {
+    "id": "Q08",
+    "question": "重排序模型的作用是什么？",
+    "expected_keywords": ["重排序", "Reranker", "Cross-Encoder", "BGE"],
+    "expected_doc_source": "RAG技术介绍.md",
+    "category": "RAG技术"
+  },
+  {
+    "id": "Q09",
+    "question": "查询改写在什么场景下需要用到？",
+    "expected_keywords": ["查询改写", "指代", "多轮", "代词"],
+    "expected_doc_source": "RAG技术介绍.md",
+    "category": "RAG优化"
+  },
+  {
+    "id": "Q10",
+    "question": "RAG和模型微调有什么区别？各适合什么场景？",
+    "expected_keywords": ["微调", "动态检索", "训练", "参数"],
+    "expected_doc_source": "RAG技术介绍.md",
+    "category": "RAG基础"
+  },
+  {
+    "id": "Q11",
+    "question": "ChromaDB和Milvus各适合什么场景？",
+    "expected_keywords": ["ChromaDB", "Milvus", "轻量", "分布式"],
+    "expected_doc_source": "RAG技术介绍.md",
+    "category": "RAG技术"
+  },
+  {
+    "id": "Q12",
+    "question": "RAG系统的检索后处理包括哪些步骤？",
+    "expected_keywords": ["后置过滤", "重排序", "3", "5"],
+    "expected_doc_source": "RAG技术介绍.md",
+    "category": "RAG技术"
+  },
+  {
+    "id": "Q13",
+    "question": "RAG系统需要什么样的提示词？",
+    "expected_keywords": ["提示词", "上下文", "诚实说明", "prompt"],
+    "expected_doc_source": "RAG技术介绍.md",
+    "category": "RAG实践"
+  },
+  {
+    "id": "Q14",
+    "question": "Python中async和await关键字是做什么的？",
+    "expected_keywords": ["协程", "await", "async", "暂停"],
+    "expected_doc_source": "Python异步编程快速入门.txt",
+    "category": "Python基础"
+  },
+  {
+    "id": "Q15",
+    "question": "异步编程和多线程有什么区别？",
+    "expected_keywords": ["单线程", "切换", "事件循环", "锁"],
+    "expected_doc_source": "Python异步编程快速入门.txt",
+    "category": "Python基础"
+  },
+  {
+    "id": "Q16",
+    "question": "什么是异步生成器？它在什么场景下有用？",
+    "expected_keywords": ["async def", "yield", "流式", "SSE"],
+    "expected_doc_source": "Python异步编程快速入门.txt",
+    "category": "Python进阶"
+  },
+  {
+    "id": "Q17",
+    "question": "FastAPI的StreamingResponse是怎么工作的？",
+    "expected_keywords": ["StreamingResponse", "SSE", "生成器", "流式"],
+    "expected_doc_source": "Python异步编程快速入门.txt",
+    "category": "Python进阶"
+  },
+  {
+    "id": "Q18",
+    "question": "用协程比用多线程好在哪里？",
+    "expected_keywords": ["线程切换", "锁", "I/O", "开销"],
+    "expected_doc_source": "Python异步编程快速入门.txt",
+    "category": "Python基础"
+  },
+  {
+    "id": "Q19",
+    "question": "httpx库有什么特点？在FastAPI项目中怎么用？",
+    "expected_keywords": ["httpx", "AsyncClient", "异步", "FastAPI"],
+    "expected_doc_source": "Python异步编程快速入门.txt",
+    "category": "Python实践"
+  },
+  {
+    "id": "Q20",
+    "question": "FastAPI中可以用阻塞的同步函数吗？为什么？",
+    "expected_keywords": ["阻塞", "事件循环", "asyncio", "线程"],
+    "expected_doc_source": "Python异步编程快速入门.txt",
+    "category": "Python实践"
+  },
+  {
+    "id": "Q21",
+    "question": "aiosqlite是用来做什么的？在哪个框架中被使用？",
+    "expected_keywords": ["aiosqlite", "SQLite", "AsyncSqliteSaver", "LangGraph"],
+    "expected_doc_source": "Python异步编程快速入门.txt",
+    "category": "Python实践"
+  },
+  {
+    "id": "Q22",
+    "question": "怎么理解协程就像一个可以暂停和恢复的函数？",
+    "expected_keywords": ["暂停", "恢复", "await", "控制权"],
+    "expected_doc_source": "Python异步编程快速入门.txt",
+    "category": "Python基础"
+  },
+  {
+    "id": "Q23",
+    "question": "SSE协议的数据格式是什么样的？",
+    "expected_keywords": ["event", "data", "空行", "单向"],
+    "expected_doc_source": "Python异步编程快速入门.txt",
+    "category": "Python进阶"
+  },
+  {
+    "id": "Q24",
+    "question": "FastAPI中依赖注入支持异步吗？",
+    "expected_keywords": ["Depends", "异步", "await", "注入"],
+    "expected_doc_source": "Python异步编程快速入门.txt",
+    "category": "Python实践"
+  },
+  {
+    "id": "Q25",
+    "question": "Python的异步模型适合计算密集型任务吗？",
+    "expected_keywords": ["计算密集型", "多进程", "线程池", "I/O"],
+    "expected_doc_source": "Python异步编程快速入门.txt",
+    "category": "Python基础"
+  },
+  {
+    "id": "Q26",
+    "question": "为什么同步的I/O操作是对CPU资源的浪费？",
+    "expected_keywords": ["阻塞", "等待", "CPU空闲", "并发"],
+    "expected_doc_source": "Python异步编程快速入门.txt",
+    "category": "Python基础"
+  },
+  {
+    "id": "Q27",
+    "question": "星辰科技的试用期是多久？",
+    "expected_keywords": ["三个月", "试用期", "提前转正"],
+    "expected_doc_source": "星辰科技员工手册.docx",
+    "category": "入职与考勤"
+  },
+  {
+    "id": "Q28",
+    "question": "星辰科技的工作时间是怎样的？远程办公有什么规定？",
+    "expected_keywords": ["弹性工作制", "10:00", "16:00", "远程", "8天"],
+    "expected_doc_source": "星辰科技员工手册.docx",
+    "category": "入职与考勤"
+  },
+  {
+    "id": "Q29",
+    "question": "迟到多少次会扣年假？",
+    "expected_keywords": ["迟到", "5次", "半小时", "年假"],
+    "expected_doc_source": "星辰科技员工手册.docx",
+    "category": "入职与考勤"
+  },
+  {
+    "id": "Q30",
+    "question": "星辰科技的年假政策是什么？怎么计算？",
+    "expected_keywords": ["年假", "5天", "15天", "工龄"],
+    "expected_doc_source": "星辰科技员工手册.docx",
+    "category": "薪酬与福利"
+  },
+  {
+    "id": "Q31",
+    "question": "星辰科技提供哪些员工福利？",
+    "expected_keywords": ["五险一金", "商业医疗", "体检", "购物卡"],
+    "expected_doc_source": "星辰科技员工手册.docx",
+    "category": "薪酬与福利"
+  },
+  {
+    "id": "Q32",
+    "question": "绩效评级S级的员工有什么特别奖励？",
+    "expected_keywords": ["S级", "2个月", "特别奖励", "年终奖"],
+    "expected_doc_source": "星辰科技员工手册.docx",
+    "category": "薪酬与福利"
+  },
+  {
+    "id": "Q33",
+    "question": "星辰科技的技术晋升路径是什么？",
+    "expected_keywords": ["晋升", "初级", "高级", "技术专家", "架构师"],
+    "expected_doc_source": "星辰科技员工手册.docx",
+    "category": "培训与晋升"
+  },
+  {
+    "id": "Q34",
+    "question": "员工每年有多少学习基金？可以用来做什么？",
+    "expected_keywords": ["3000元", "学习基金", "书籍", "课程"],
+    "expected_doc_source": "星辰科技员工手册.docx",
+    "category": "培训与晋升"
+  },
+  {
+    "id": "Q35",
+    "question": "星辰科技的病假怎么规定的？",
+    "expected_keywords": ["病假", "80%", "2天", "全勤", "证明"],
+    "expected_doc_source": "星辰科技员工手册.docx",
+    "category": "薪酬与福利"
+  },
+  {
+    "id": "Q36",
+    "question": "星辰科技对于泄露商业机密有什么处分？",
+    "expected_keywords": ["泄露", "商业机密", "警告", "解除劳动合同"],
+    "expected_doc_source": "星辰科技员工手册.docx",
+    "category": "行为规范"
+  },
+  {
+    "id": "Q37",
+    "question": "什么情况会被视为严重违纪？",
+    "expected_keywords": ["缺勤", "3天", "5天", "严重违纪"],
+    "expected_doc_source": "星辰科技员工手册.docx",
+    "category": "入职与考勤"
+  },
+  {
+    "id": "Q38",
+    "question": "员工的日常工作文件应该存在哪里？",
+    "expected_keywords": ["加密云盘", "个人网盘", "工作文件"],
+    "expected_doc_source": "星辰科技员工手册.docx",
+    "category": "行为规范"
+  },
+  {
+    "id": "Q39",
+    "question": "SmartDesk Pro X1的升降高度范围是多少？",
+    "expected_keywords": ["62cm", "128cm", "4个预设", "3.8cm"],
+    "expected_doc_source": "SmartDesk智能办公桌产品FAQ.xlsx",
+    "category": "产品规格"
+  },
+  {
+    "id": "Q40",
+    "question": "SmartDesk Pro X1的最大承重是多少？用什么材质？",
+    "expected_keywords": ["125公斤", "双电机", "E1", "2.5厘米"],
+    "expected_doc_source": "SmartDesk智能办公桌产品FAQ.xlsx",
+    "category": "产品规格"
+  },
+  {
+    "id": "Q41",
+    "question": "怎么用手机APP控制SmartDesk Pro X1？",
+    "expected_keywords": ["SmartLife", "蓝牙5.0", "iOS", "Android"],
+    "expected_doc_source": "SmartDesk智能办公桌产品FAQ.xlsx",
+    "category": "使用指南"
+  },
+  {
+    "id": "Q42",
+    "question": "SmartDesk Pro X1的保修政策是什么？",
+    "expected_keywords": ["3年", "整机", "5年", "核心部件", "保修"],
+    "expected_doc_source": "SmartDesk智能办公桌产品FAQ.xlsx",
+    "category": "售后政策"
+  },
+  {
+    "id": "Q43",
+    "question": "控制面板显示E02错误是什么意思？怎么处理？",
+    "expected_keywords": ["E02", "电机过热", "15", "20分钟", "冷却"],
+    "expected_doc_source": "SmartDesk智能办公桌产品FAQ.xlsx",
+    "category": "故障排查"
+  },
+  {
+    "id": "Q44",
+    "question": "SmartDesk Pro X1有哪些尺寸和颜色可选？",
+    "expected_keywords": ["120cm", "140cm", "160cm", "胡桃木", "白色"],
+    "expected_doc_source": "SmartDesk智能办公桌产品FAQ.xlsx",
+    "category": "产品规格"
+  },
+  {
+    "id": "Q45",
+    "question": "SmartDesk Pro X1的售价是多少？支持分期付款吗？",
+    "expected_keywords": ["3299", "3999", "分期", "花呗"],
+    "expected_doc_source": "SmartDesk智能办公桌产品FAQ.xlsx",
+    "category": "购买信息"
+  },
+  {
+    "id": "Q46",
+    "question": "桌子的耗电量大吗？一年大概多少电费？",
+    "expected_keywords": ["0.5W", "0.003度", "3元", "待机"],
+    "expected_doc_source": "SmartDesk智能办公桌产品FAQ.xlsx",
+    "category": "产品规格"
+  },
+  {
+    "id": "Q47",
+    "question": "安装SmartDesk Pro X1需要多久？有上门安装服务吗？",
+    "expected_keywords": ["30", "45分钟", "上门安装", "199元"],
+    "expected_doc_source": "SmartDesk智能办公桌产品FAQ.xlsx",
+    "category": "购买信息"
+  },
+  {
+    "id": "Q48",
+    "question": "SmartDesk Pro X1支持哪些支付方式？",
+    "expected_keywords": ["微信支付", "支付宝", "银联卡", "信用卡"],
+    "expected_doc_source": "SmartDesk智能办公桌产品FAQ.xlsx",
+    "category": "购买信息"
+  },
+  {
+    "id": "Q49",
+    "question": "可以用非原厂的显示器支架吗？有什么兼容性要求？",
+    "expected_keywords": ["C型夹", "显示器支架", "4.5cm", "NB", "乐歌"],
+    "expected_doc_source": "SmartDesk智能办公桌产品FAQ.xlsx",
+    "category": "使用指南"
+  },
+  {
+    "id": "Q50",
+    "question": "如果在保修期外需要维修怎么处理？",
+    "expected_keywords": ["有偿维修", "配件价格", "客服热线", "售后"],
+    "expected_doc_source": "SmartDesk智能办公桌产品FAQ.xlsx",
+    "category": "售后政策"
+  }
+]

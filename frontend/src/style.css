@@ -1,0 +1,205 @@
+/* 全局样式：RAG 知识库问答系统风格（浅色 + indigo + 网格背景），参考 rag_engine/static */
+:root {
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #e2e8f0;
+  --sidebar-text-main: #334155;
+  --sidebar-text-muted: #64748b;
+  --sidebar-hover: #f1f5f9;
+  --sidebar-active: #e0e7ff;
+  --main-bg: #f4f7fb;
+  --main-grid-color: rgba(99, 102, 241, 0.05);
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --primary: #4f46e5;
+  --primary-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  --border-light: #e2e8f0;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--main-bg); color: var(--text-main);
+  height: 100vh; display: flex; overflow: hidden;
+}
+/* Vue 挂载容器：原版 sidebar/main 直接是 body 子元素，Vue 结构多一层 #app，需同样为 flex 容器 */
+#app { display: flex; width: 100%; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: var(--radius-full); }
+
+/* ================== 侧边栏 ================== */
+.sidebar {
+  width: 280px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f0f4e8 40%, #e8efe0 100%);
+  color: var(--sidebar-text-main);
+  display: flex; flex-direction: column; border-right: 1px solid var(--sidebar-border);
+  z-index: 10; box-shadow: var(--shadow-sm);
+}
+.sidebar h2 {
+  padding: 24px 20px; font-size: 18px; font-weight: 600;
+  letter-spacing: 0.5px; display: flex; align-items: center; gap: 10px; color: var(--primary);
+}
+.sidebar nav { flex: 1; overflow-y: auto; padding: 0 12px 12px; }
+.sidebar nav .nav-item {
+  display: block; padding: 10px 16px; color: var(--sidebar-text-main);
+  text-decoration: none; border-radius: var(--radius-sm); margin-bottom: 6px;
+  cursor: pointer; transition: all 0.2s ease; font-size: 14px;
+}
+.sidebar nav .nav-item:hover { background: var(--sidebar-hover); }
+.sidebar nav .active {
+  background: var(--sidebar-active); color: var(--primary);
+  font-weight: 600; box-shadow: inset 3px 0 0 var(--primary);
+}
+.conv-item { display: flex; justify-content: space-between; align-items: center; }
+.conv-item .title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn-icon {
+  background: none; border: none; color: #94a3b8; cursor: pointer;
+  width: 24px; height: 24px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; font-size: 13px; flex-shrink: 0;
+}
+.btn-icon:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+/* 上传区 */
+.upload-area { padding: 16px 16px; border-top: 1px solid var(--sidebar-border); background: #f8fafc; }
+.upload-area label {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 12px; border: 1px dashed #94a3b8; border-radius: var(--radius-md);
+  cursor: pointer; transition: all 0.3s ease; background: white;
+}
+.upload-area label .upload-title {
+  display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500;
+  color: var(--sidebar-text-main);
+}
+.upload-area label small { display: block; margin-top: 4px; color: var(--sidebar-text-muted); font-size: 12px; }
+.upload-area label:hover { border-color: var(--primary); background: rgba(79, 70, 229, 0.05); }
+.upload-area input { display: none; }
+.upload-status { font-size: 12px; margin-top: 8px; text-align: center; color: var(--text-muted); }
+
+/* 文档列表 */
+.doc-section { padding: 16px; border-top: 1px solid var(--sidebar-border); height: 32%; display: flex; flex-direction: column; }
+.doc-section .doc-title { font-size: 12px; font-weight: 600; color: var(--sidebar-text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+.doc-list { flex: 1; overflow-y: auto; font-size: 13px; color: var(--sidebar-text-muted); }
+.doc-list-item {
+  margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px; background: white; border: 1px solid var(--border-light);
+  border-radius: 6px; box-shadow: var(--shadow-sm);
+}
+.doc-list-item .doc-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.sidebar-footer { padding: 12px 16px; border-top: 1px solid var(--sidebar-border); font-size: 12px; color: var(--text-muted); display: flex; gap: 8px; }
+.sidebar-footer button {
+  flex: 1; padding: 8px; border: 1px solid var(--border-light); border-radius: var(--radius-sm);
+  background: white; color: var(--primary); cursor: pointer; font-size: 12px; transition: all 0.2s;
+}
+.sidebar-footer button:hover { background: var(--sidebar-active); }
+
+/* ================== 主区域 ================== */
+.main {
+  flex: 1; display: flex; flex-direction: column; position: relative;
+  background-image:
+    linear-gradient(var(--main-grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--main-grid-color) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+.header {
+  background: rgba(244, 247, 251, 0.85); backdrop-filter: blur(12px);
+  padding: 16px 32px; border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  font-weight: 600; color: var(--text-main);
+  display: flex; justify-content: center; align-items: center; z-index: 5;
+}
+.status-bar { padding: 4px 32px 0; font-size: 12px; color: var(--text-muted); }
+
+/* ================== 聊天区 ================== */
+.chat-area {
+  flex: 1; overflow-y: auto; padding: 32px 48px 60px;
+  display: flex; flex-direction: column; gap: 24px; scroll-behavior: smooth;
+  background: radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.03) 0%, transparent 60%);
+}
+.msg { display: flex; gap: 16px; animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; max-width: 860px; }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+.msg.user { align-self: flex-end; flex-direction: row-reverse; }
+.msg.assistant { align-self: flex-start; }
+.msg .avatar {
+  width: 42px; height: 42px; border-radius: var(--radius-lg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0; box-shadow: var(--shadow-sm);
+}
+.msg.user .avatar { background: var(--primary-gradient); color: white; }
+.msg.assistant .avatar { background: white; border: 1px solid var(--border-light); }
+.msg .bubble-wrapper { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.msg.user .bubble-wrapper { align-items: flex-end; }
+.msg .bubble {
+  padding: 16px 22px; border-radius: var(--radius-lg); line-height: 1.8;
+  font-size: 15px; box-shadow: var(--shadow-sm); word-break: break-word;
+  white-space: pre-wrap;
+}
+.msg.user .bubble { background: var(--primary-gradient); color: white; border-bottom-right-radius: 4px; }
+.msg.assistant .bubble { background: white; color: var(--text-main); border: 1px solid var(--border-light); border-bottom-left-radius: 4px; }
+
+/* 来源标签（RAG 特色：引用文档） */
+.source-tags { margin-top: 4px; font-size: 12px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.source-tags .source-label { color: var(--text-muted); font-weight: 500; }
+.source-tags .file-tag {
+  display: inline-flex; align-items: center;
+  background: #f1f5f9; border: 1px solid #e2e8f0;
+  padding: 4px 12px; border-radius: var(--radius-full);
+  color: var(--primary); font-size: 12px; font-weight: 500;
+  transition: background 0.2s;
+}
+.source-tags .file-tag:hover { background: #e2e8f0; }
+
+/* 进度提示（转圈动画） */
+.progress-msg { color: var(--text-muted) !important; font-style: italic; display: flex; align-items: center; gap: 8px; }
+.progress-msg::before {
+  content: ""; width: 14px; height: 14px;
+  border: 2px solid #cbd5e1; border-top-color: var(--primary);
+  border-radius: 50%; animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ================== 输入区 ================== */
+.input-wrapper { padding: 0 32px 16px; background: linear-gradient(to top, var(--main-bg) 80%, transparent); }
+.input-area {
+  max-width: 1100px; margin: 0 auto;
+  background: white; padding: 12px; border: 1px solid var(--border-light);
+  border-radius: 24px; display: flex; gap: 12px;
+  box-shadow: var(--shadow-lg); transition: all 0.3s ease;
+}
+.input-area:focus-within { border-color: #818cf8; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1), var(--shadow-lg); }
+.input-area input {
+  flex: 1; padding: 12px 16px; border: none; background: transparent;
+  font-size: 15px; outline: none; color: var(--text-main);
+}
+.input-area input::placeholder { color: #94a3b8; }
+.input-area button {
+  padding: 12px 28px; background: var(--primary-gradient); color: white;
+  border: none; border-radius: var(--radius-full); font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm);
+}
+.input-area button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.input-area button:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* ================== Markdown 内容渲染 ================== */
+/* 覆盖气泡的 pre-wrap（.msg .bubble 特异性更高，需同元素多类选择器才能赢）：
+   markdown 已把换行处理成段落，pre-wrap 再保留 \n 会双重换行 */
+.msg .bubble.md-body { white-space: normal; }
+.md-body p { margin: 6px 0; }
+.md-body p:first-child { margin-top: 0; }
+.md-body p:last-child { margin-bottom: 0; }
+.md-body table { border-collapse: collapse; margin: 8px 0; font-size: 13px; }
+.md-body th, .md-body td { border: 1px solid #e2e8f0; padding: 6px 12px; text-align: left; }
+.md-body th { background: #f8fafc; font-weight: 600; }
+.md-body code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+.md-body pre { background: #f8fafc; padding: 12px; border-radius: 8px; overflow-x: auto; margin: 8px 0; }
+.md-body pre code { background: none; padding: 0; }
+.md-body ul, .md-body ol { padding-left: 20px; margin: 6px 0; }
+.md-body h1, .md-body h2, .md-body h3 { margin: 10px 0 6px; }
+.md-body a { color: var(--primary); }
