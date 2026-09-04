@@ -20,7 +20,6 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.documents import Document
-from langchain_community.retrievers import BM25Retriever
 from langchain_classic.retrievers import EnsembleRetriever
 from sentence_transformers import CrossEncoder
 
@@ -97,11 +96,12 @@ class RAGService:
       混合检索取两者交集，互补短板
     """
 
-    def __init__(self, vector_store, llm, checkpointer: AsyncSqliteSaver, embeddings):
+    def __init__(self, vector_store, llm, checkpointer: AsyncSqliteSaver, embeddings, bm25_cache):
         self.vector_store = vector_store    # ChromaDB 实例
         self.llm = llm                      # Qwen LLM
         self.checkpointer = checkpointer    # AsyncSqliteSaver（自动持久化对话状态）
         self.embeddings = embeddings        # AliyunEmbeddings
+        self.bm25_cache = bm25_cache        # BM25 倒排索引共享缓存（文档变更由 document_service 失效）
 
         # 组装提示词模板
 
@@ -244,16 +244,8 @@ class RAGService:
         """
         query = state["query"]
 
-        # 加载全部文档块（带 ChromaDB 原生 ID，供后置过滤匹配）
-        store_data = self.vector_store.get()
-        all_docs = [
-            Document(id=chunk_id, page_content=text, metadata=meta)
-            for chunk_id, text, meta in zip(
-                store_data.get("ids", []),
-                store_data.get("documents", []),
-                store_data.get("metadatas", []),
-            )
-        ]
+        # 从共享缓存取 BM25 索引（首次/文档变更后重建一次，避免每次查询全量拉库）
+        all_docs, bm25_retriever = self.bm25_cache.ensure()
 
         if not all_docs:
             return {"context": "", "sources": [], "documents": []}
@@ -271,9 +263,6 @@ class RAGService:
         vector_retriever = self.vector_store.as_retriever(
             search_kwargs={"k": settings.TOP_K}
         )
-        # BM25 检索器（关键词匹配）
-        bm25_retriever = BM25Retriever.from_documents(all_docs)
-        bm25_retriever.k = settings.BM25_K
         # 混合检索器：RRF 融合，偏向向量（语义 > 关键词）
         ensemble = EnsembleRetriever(
             retrievers=[vector_retriever, bm25_retriever],

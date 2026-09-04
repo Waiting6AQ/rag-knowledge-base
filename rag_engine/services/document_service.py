@@ -26,8 +26,9 @@ from models.document import (
 class DocumentService:
     """文档管理：上传、列表、删除"""
 
-    def __init__(self, embeddings: AliyunEmbeddings):
+    def __init__(self, embeddings: AliyunEmbeddings, bm25_cache):
         self.embeddings = embeddings
+        self.bm25_cache = bm25_cache    # BM25 索引缓存：文档变更成功后失效（写者职责，见 bm25_index.py）
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=settings.CHUNK_SIZE,
             chunk_overlap=settings.CHUNK_OVERLAP,
@@ -95,6 +96,9 @@ class DocumentService:
                 detail=f"文档索引失败（{type(e).__name__}），已清理残留数据，请稍后重试",
             ) from e
 
+        # 文档集合已变更：失效 BM25 索引缓存（下次查询重建）
+        self.bm25_cache.invalidate()
+
         return DocumentUploadResponse(
             doc_id=doc_id,
             filename=saved_path.name,
@@ -152,6 +156,9 @@ class DocumentService:
 
         # 2. 删除 ChromaDB 中的向量
         store.delete(where={"doc_id": doc_id})
+
+        # 文档集合已变更：失效 BM25 索引缓存（下次查询重建）
+        self.bm25_cache.invalidate()
 
         return DocumentDeleteResponse(
             doc_id=doc_id,
