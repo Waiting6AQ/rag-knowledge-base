@@ -4,9 +4,6 @@ import com.ragadmin.common.BusinessException;
 import com.ragadmin.dto.AiChatResponse;
 import com.ragadmin.dto.ChatRequest;
 import com.ragadmin.dto.ChatResponse;
-import com.ragadmin.mapper.ChatMessageMapper;
-import com.ragadmin.mapper.ChatSessionMapper;
-import com.ragadmin.model.ChatMessage;
 import com.ragadmin.model.ChatSession;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -39,11 +36,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ChatService {
 
-    private static final String DEFAULT_TITLE = "新会话";
-
     private final SessionService sessionService;
-    private final ChatSessionMapper sessionMapper;
-    private final ChatMessageMapper messageMapper;
+    private final ChatRecordService recordService;
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
 
@@ -57,14 +51,8 @@ public class ChatService {
         // 2. 转发 AI 服务（超时/降级在方法内处理）
         AiChatResponse ai = callAiService(userId, session, req.getQuestion());
 
-        // 3. 落库：用户消息 + AI 回答（带引用来源 JSON）
-        saveMessage(session.getId(), "user", req.getQuestion(), null);
-        saveMessage(session.getId(), "assistant", ai.getAnswer(), sourcesToJson(ai.getSources()));
-
-        // 4. 标题更新：对齐 Python 侧 message[:80]，仅首次
-        if (DEFAULT_TITLE.equals(session.getTitle())) {
-            sessionMapper.updateTitle(session.getId(), truncate(req.getQuestion()));
-        }
+        // 3. 事务落库：用户消息 + AI 回答（带引用来源）+ 标题更新（ChatRecordService，原子性）
+        recordService.saveExchange(session, req.getQuestion(), ai.getAnswer(), sourcesToJson(ai.getSources()));
 
         return new ChatResponse(
                 session.getId(),
@@ -141,8 +129,8 @@ public class ChatService {
             writeError(outputStream);
             return;
         }
-        // 流正常结束：落库（user + assistant 消息 + 引用来源 + 标题更新）
-        persistExchange(session, userMsg, fullReply.toString(), sources);
+        // 流正常结束：事务落库（user + assistant 消息 + 引用来源 + 标题更新）
+        recordService.saveExchange(session, userMsg, fullReply.toString(), sources);
     }
 
     /**
@@ -216,24 +204,6 @@ public class ChatService {
         }
     }
 
-    /** 落库：用户消息 + AI 完整回复（带引用来源 JSON）+ 标题更新 */
-    private void persistExchange(ChatSession session, String userMsg, String reply, String sources) {
-        saveMessage(session.getId(), "user", userMsg, null);
-        saveMessage(session.getId(), "assistant", reply, sources);
-        if (DEFAULT_TITLE.equals(session.getTitle())) {
-            sessionMapper.updateTitle(session.getId(), truncate(userMsg));
-        }
-    }
-
-    private void saveMessage(Long sessionId, String role, String content, String sources) {
-        ChatMessage msg = new ChatMessage();
-        msg.setSessionId(sessionId);
-        msg.setRole(role);
-        msg.setContent(content);
-        msg.setSources(sources);
-        messageMapper.insert(msg);
-    }
-
     /** 非流式响应的 sources 列表 → JSON 文本（落库格式，与流式旁路记录一致） */
     private String sourcesToJson(java.util.List<AiChatResponse.SourceInfo> sources) {
         if (sources == null || sources.isEmpty()) {
@@ -245,9 +215,5 @@ public class ChatService {
             log.error("sources 序列化失败", e);
             return null;
         }
-    }
-
-    private String truncate(String s) {
-        return s.length() > 80 ? s.substring(0, 80) : s;
     }
 }

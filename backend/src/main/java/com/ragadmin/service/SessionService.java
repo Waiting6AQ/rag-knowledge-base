@@ -9,6 +9,7 @@ import com.ragadmin.model.ChatMessage;
 import com.ragadmin.model.ChatSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -51,7 +52,8 @@ public class SessionService {
         return new SessionDetail(session, messages);
     }
 
-    /** 删除：校验归属，级联清理消息，防止孤儿数据 */
+    /** 删除：校验归属，级联清理消息，防止孤儿数据（删消息 + 删会话同一事务，不留半状态） */
+    @Transactional
     public void delete(Long userId, Long sessionId) {
         getOwnedSession(userId, sessionId);
         messageMapper.deleteBySessionId(sessionId);
