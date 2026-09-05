@@ -1,0 +1,57 @@
+# 生产部署版（独立完整文件）：从 ACR 拉预构建镜像运行，服务器无需源码与 Dockerfile
+# 用法：服务器上放本文件 + .env（密钥），执行 docker compose -f docker-compose.prod.yml up -d
+# 与开发版 docker-compose.yml 的差异：
+#   1. build → image（镜像已推到阿里云 ACR）
+#   2. backend 不映射宿主端口：对外只有前端 80 一个口（浏览器经 nginx 内网代理访问后端）
+#   3. 所有服务 restart: unless-stopped（服务器重启/崩溃自动拉起）
+# 可选：.env 里设 REGISTRY 覆盖镜像域名（服务器与 ACR 同地域时走内网 crpi-xxx-vpc...）
+services:
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:?请在 .env 设置 DB_PASSWORD}
+      MYSQL_DATABASE: rag_admin
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  engine:
+    image: ${REGISTRY:-crpi-69vrskbekmelwihc.cn-guangzhou.personal.cr.aliyuncs.com}/waiting6aq/rag-engine:latest
+    environment:
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:?请在 .env 设置 DASHSCOPE_API_KEY}
+    volumes:
+      - engine-data:/app/data
+      - engine-cache:/app/.cache/huggingface
+    restart: unless-stopped
+
+  backend:
+    image: ${REGISTRY:-crpi-69vrskbekmelwihc.cn-guangzhou.personal.cr.aliyuncs.com}/waiting6aq/rag-backend:latest
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD:?}
+      DB_URL: jdbc:mysql://mysql:3306/rag_admin?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+      JWT_SECRET: ${JWT_SECRET:-rag-admin-jwt-secret-key-change-me-in-production-2026}
+      AI_SERVICE_URL: http://engine:8000
+    depends_on:
+      mysql:
+        condition: service_healthy
+      engine:
+        condition: service_started
+    restart: unless-stopped
+
+  frontend:
+    image: ${REGISTRY:-crpi-69vrskbekmelwihc.cn-guangzhou.personal.cr.aliyuncs.com}/waiting6aq/rag-frontend:latest
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  engine-data:
+  engine-cache:

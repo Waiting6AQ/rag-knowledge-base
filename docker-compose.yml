@@ -19,6 +19,10 @@ services:
     build: ./rag_engine
     environment:
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:?请在 .env 设置 DASHSCOPE_API_KEY}
+    # 数据卷：文档/向量库/checkpoint 跨容器保留；reranker 模型缓存避免容器重建后重下 1.3GB
+    volumes:
+      - engine-data:/app/data
+      - engine-cache:/app/.cache/huggingface
     # 不暴露端口：内网服务，只有 backend 能访问（"Python 不出内网"在部署层落地）
     restart: unless-stopped
 
@@ -48,3 +52,5 @@ services:
 
 volumes:
   mysql-data:
+  engine-data:
+  engine-cache:

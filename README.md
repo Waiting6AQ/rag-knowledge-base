@@ -143,7 +143,7 @@ docker compose logs -f backend    # 看到"已创建默认管理员账号 admin"
 访问 `http://localhost:8080`（nginx 托管前端 + 代理 /api，无跨域）；后端 API 也可直连 `http://localhost:8081`。
 
 - **架构落地**：mysql/engine 不暴露宿主端口（"Python 不出内网"在部署层生效），容器间用服务名互访
-- **数据**：账号/会话/消息在 mysql 卷（`down` 保留、`down -v` 清空）；引擎容器内的模型缓存/上传文档随容器删除（`stop` 保留、`down` 清除）——首次提问会下载重排模型，稍慢属正常
+- **数据**：账号/会话/消息在 mysql 卷；引擎的文档/向量库与 reranker 模型缓存也在卷中（engine-data / engine-cache）——`down` 全部保留，`down -v` 才清空；首次问答若需下载重排模型会稍慢，之后不再重复下载
 - **结束**：`docker compose stop`（保留现场，下次秒开）或 `docker compose down`
 
 ## License
