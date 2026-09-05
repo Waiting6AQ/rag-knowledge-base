@@ -192,6 +192,7 @@ body {
    markdown 已把换行处理成段落，pre-wrap 再保留 \n 会双重换行 */
 .msg .bubble.md-body { white-space: normal; }
 .md-body p { margin: 6px 0; }
+.md-body p + p { margin-top: 12px; }   /* 段落间留出明显空行（问候语标题与内容之间） */
 .md-body p:first-child { margin-top: 0; }
 .md-body p:last-child { margin-bottom: 0; }
 .md-body table { border-collapse: collapse; margin: 8px 0; font-size: 13px; }

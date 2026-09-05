@@ -84,6 +84,12 @@ class DocumentService:
                 })
             # 7. 分块
             chunks = self.text_splitter.split_documents(docs)
+            # 7.5 来源注入：每块正文前置 [文件名] 标识——多文档/多公司场景下检索与生成
+            #     都能感知 chunk 归属，避免"薪资"这类通用语义跨文档串扰
+            #     （用文件名而非"提取标题"：零成本、格式统一、无需启发式）
+            source_tag = os.path.splitext(saved_path.name)[0]
+            for chunk in chunks:
+                chunk.page_content = f"[{source_tag}] {chunk.page_content}"
             # 8. 嵌入并存入 ChromaDB（自动持久化）
             store.add_documents(chunks)
         except Exception as e:

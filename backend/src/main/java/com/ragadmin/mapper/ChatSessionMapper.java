@@ -26,8 +26,8 @@ public interface ChatSessionMapper {
     @Delete("DELETE FROM chat_session WHERE id = #{id}")
     int deleteById(Long id);
 
-    /** 标题更新（对齐 Python 侧：发消息时更新为消息前 80 字） */
-    @Update("UPDATE chat_session SET title = #{title} WHERE id = #{id}")
+    /** 标题更新（对齐 Python 侧：每轮消息更新为最新提问前 80 字；刷新 updated_at 使会话按最新活动排序） */
+    @Update("UPDATE chat_session SET title = #{title}, updated_at = NOW() WHERE id = #{id}")
     int updateTitle(@Param("id") Long id, @Param("title") String title);
 
     /** 分页查询（XML：复杂 SQL 走 XML 的示范） */

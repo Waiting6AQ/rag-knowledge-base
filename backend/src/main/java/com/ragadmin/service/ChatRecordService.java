@@ -16,19 +16,21 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ChatRecordService {
 
-    private static final String DEFAULT_TITLE = "新会话";
-
     private final ChatSessionMapper sessionMapper;
     private final ChatMessageMapper messageMapper;
 
-    /** 一轮问答落库：用户消息 + AI 回复（带引用来源）+ 标题更新，同一事务保证原子性 */
+    /** 一轮问答落库：用户消息 + AI 回复（带引用来源）+ 标题更新，同一事务保证原子性
+     *  标题对齐 Python 侧：每轮都更新为最新提问前 80 字（会话列表按最新活动排序） */
     @Transactional
     public void saveExchange(ChatSession session, String userMsg, String reply, String sources) {
         saveMessage(session.getId(), "user", userMsg, null);
         saveMessage(session.getId(), "assistant", reply, sources);
-        if (DEFAULT_TITLE.equals(session.getTitle())) {
-            sessionMapper.updateTitle(session.getId(), truncate(userMsg));
-        }
+        sessionMapper.updateTitle(session.getId(), truncate(userMsg));
+    }
+
+    /** 流开始前提前更新标题（标题只依赖提问内容）：避免前端收到 done 刷新列表时竞态读到旧标题 */
+    public void updateTitleEarly(ChatSession session, String userMsg) {
+        sessionMapper.updateTitle(session.getId(), truncate(userMsg));
     }
 
     private void saveMessage(Long sessionId, String role, String content, String sources) {

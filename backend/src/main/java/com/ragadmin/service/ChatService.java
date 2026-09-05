@@ -106,6 +106,8 @@ public class ChatService {
      * 转发期间旁路记录落库所需元数据（token 拼接完整回复、sources 引用来源），不干扰转发
      */
     private void relayStream(OutputStream outputStream, Long userId, ChatSession session, String userMsg) {
+        // 标题只依赖提问：流开始前先落库，前端收到 done 刷新列表时必然是新标题（消除竞态）
+        recordService.updateTitleEarly(session, userMsg);
         StringBuilder fullReply = new StringBuilder();
         String sources = null;
         try {
