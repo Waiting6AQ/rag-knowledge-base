@@ -16,23 +16,23 @@
 
 ## 技术栈
 
-| 层       | 技术                                                                                    |
-| -------- | --------------------------------------------------------------------------------------- |
-| 前端     | Vue 3 / Vite / axios / fetch（SSE 流式读取）/ markdown-it + DOMPurify（回答渲染）        |
+| 层       | 技术                                                                                        |
+| -------- | ------------------------------------------------------------------------------------------- |
+| 前端     | Vue 3 / Vite / axios / fetch（SSE 流式读取）/ markdown-it + DOMPurify（回答渲染）           |
 | 业务后端 | Spring Boot 3.5 / MyBatis（注解 + XML）/ MySQL / jjwt / spring-security-crypto / RestClient |
-| AI 引擎  | Python FastAPI / LangGraph / LangChain / ChromaDB / bge-reranker / DashScope Qwen        |
+| AI 引擎  | Python FastAPI / LangGraph / LangChain / ChromaDB / bge-reranker / DashScope Qwen           |
 
 ## 目录结构
 
 ```
 rag_system/
 ├── rag_engine/     Python RAG 引擎（AI 能力层，:8000）
-├── backend/        Spring Boot 业务后端（:8081）
-│   ├── db/init.sql          建库脚本（可选，默认自动建库）
-│   └── src/main/resources/
-│       ├── schema.sql       建表脚本（启动自动执行，utf8mb4）
-│       └── mapper/*.xml     复杂 SQL（分页查询）
-└── frontend/       Vue 3 前端（:5173，开发代理到 :8081）
+├── backend/         Spring Boot 业务后端（:8081）
+│   └── src/main/resources/schema.sql   建表脚本（启动自动执行）
+├── frontend/        Vue 3 前端（:5173，开发代理到 :8081）
+├── docker-compose.yml       本地开发编排（build 本地构建）
+├── docker-compose.prod.yml  生产部署编排（拉取仓库镜像，见「Docker 部署」）
+└── .env.example             环境变量模板（真实 .env 不入库）
 ```
 
 ## 系统架构
@@ -65,6 +65,10 @@ LangGraph 5 节点管线：`对话摘要 → 问题改写 → 文档检索 → �
 - **离线评测**：内置 50 条标注问题集评测脚手架，来源命中率 50/50
 
 引擎完整设计细节见 [rag_engine/README.md](rag_engine/README.md)。
+
+## 界面预览
+
+![RAG 知识库问答界面](docs/screenshots/rag-chat.png)
 
 ## 快速开始
 
@@ -112,20 +116,20 @@ npm run dev
 
 ### API 端点
 
-| 方法   | 路径                     | 说明                            |
-| ------ | ------------------------ | ------------------------------- |
-| POST   | /api/auth/register       | 注册（默认 USER 角色）          |
-| POST   | /api/auth/login          | 登录，签发 JWT                  |
-| GET    | /api/auth/me             | 当前用户信息                    |
-| POST   | /api/sessions            | 创建会话                        |
-| GET    | /api/sessions            | 会话列表（分页，仅当前用户）    |
-| GET    | /api/sessions/{id}       | 会话详情（含消息 + 引用来源）   |
-| DELETE | /api/sessions/{id}       | 删除会话（级联删消息）          |
-| GET    | /api/documents           | 文档列表（来自引擎）            |
-| POST   | /api/documents/upload    | 上传文档（multipart，转发引擎） |
-| DELETE | /api/documents/{docId}   | 删除文档（级联清索引）          |
-| POST   | /api/chat                | 聊天（非流式，落库）            |
-| POST   | /api/chat/stream         | 聊天（SSE 流式，打字机效果）    |
+| 方法   | 路径                   | 说明                            |
+| ------ | ---------------------- | ------------------------------- |
+| POST   | /api/auth/register     | 注册（默认 USER 角色）          |
+| POST   | /api/auth/login        | 登录，签发 JWT                  |
+| GET    | /api/auth/me           | 当前用户信息                    |
+| POST   | /api/sessions          | 创建会话                        |
+| GET    | /api/sessions          | 会话列表（分页，仅当前用户）    |
+| GET    | /api/sessions/{id}     | 会话详情（含消息 + 引用来源）   |
+| DELETE | /api/sessions/{id}     | 删除会话（级联删消息）          |
+| GET    | /api/documents         | 文档列表（来自引擎）            |
+| POST   | /api/documents/upload  | 上传文档（multipart，转发引擎） |
+| DELETE | /api/documents/{docId} | 删除文档（级联清索引）          |
+| POST   | /api/chat              | 聊天（非流式，落库）            |
+| POST   | /api/chat/stream       | 聊天（SSE 流式，打字机效果）    |
 
 ## Docker 部署（可选）
 
@@ -145,6 +149,24 @@ docker compose logs -f backend    # 看到"已创建默认管理员账号 admin"
 - **架构落地**：mysql/engine 不暴露宿主端口（"Python 不出内网"在部署层生效），容器间用服务名互访
 - **数据**：账号/会话/消息在 mysql 卷；引擎的文档/向量库与 reranker 模型缓存也在卷中（engine-data / engine-cache）——`down` 全部保留，`down -v` 才清空；首次问答若需下载重排模型会稍慢，之后不再重复下载
 - **结束**：`docker compose stop`（保留现场，下次秒开）或 `docker compose down`
+
+### 镜像化部署（服务器）
+
+完整走过"本地构建 → 推镜像仓库 → 服务器拉取运行"的发布流程（已在阿里云 ECS 实际部署验证）：
+
+```powershell
+# 1. 本地构建镜像
+docker compose build
+# 2. 打标签并推送到镜像仓库（示例为阿里云 ACR，替换为自己的仓库地址）
+docker tag rag_system-backend:latest crpi-<实例id>.aliyuncs.com/<命名空间>/rag-backend:latest
+docker push crpi-<实例id>.aliyuncs.com/<命名空间>/rag-backend:latest
+# 3. 服务器：放置 docker-compose.prod.yml + .env（密钥）后
+docker compose -f docker-compose.prod.yml up -d   # 自动拉取镜像并启动
+```
+
+与本地版 `docker-compose.yml` 的差异：`build` → `image`（服务器无需源码即可部署）；backend 不暴露宿主端口（对外只有前端一个口）；所有服务 `restart: unless-stopped`；镜像地址可用 `.env` 的 `REGISTRY` 变量覆盖（服务器与仓库同地域时走内网拉取更快）。
+
+> 安全提示：默认账号 `admin/admin123` 与 JWT_SECRET 兜底值仅用于本地/演示环境；公网暴露前必须在服务器 `.env` 设置强 `JWT_SECRET` 并修改管理员密码。`.env` 含密钥，切勿提交到仓库或上传公开位置。
 
 ## License
 
