@@ -7,6 +7,7 @@ RAG 聊天路由
 """
 import uuid
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import StreamingResponse
 from core.dependencies import get_rag_service, get_conversation_service
 from models.chat import ChatRequest, ChatResponse
@@ -33,8 +34,9 @@ async def chat(
         temperature=request.temperature,
         top_k=request.top_k,
     )
-    # 更新对话摘要
-    conv.upsert(
+    # 更新对话摘要（同步 SQLite 写 → 线程池，避免锁等待时阻塞事件循环）
+    await run_in_threadpool(
+        conv.upsert,
         conv_id=result.conversation_id,
         title=request.question[:80],
         message_count=1,  # 后续会改为从状态中计算
@@ -56,7 +58,9 @@ async def chat_stream(
     """流式 RAG 问答，SSE 格式"""
     # 预先确定对话 ID，记录到侧边栏（调用方不传则新生成）
     cid = request.conversation_id or str(uuid.uuid4())
-    conv.upsert(
+    # 同步 SQLite 写 → 线程池执行（防止锁等待期间卡住事件循环）
+    await run_in_threadpool(
+        conv.upsert,
         conv_id=cid,
         title=request.question[:80],  # 截取前80字符作为标题
         message_count=1,

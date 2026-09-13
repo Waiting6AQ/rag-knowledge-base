@@ -19,6 +19,8 @@ services:
     build: ./rag_engine
     environment:
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:?请在 .env 设置 DASHSCOPE_API_KEY}
+      # 模型名透传：换模型只改根目录 .env（不用重建镜像）；未设置时用默认值
+      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-openai:qwen3.8-2.4t-a95b}
     # 数据卷：文档/向量库/checkpoint 跨容器保留；reranker 模型缓存避免容器重建后重下 1.3GB
     volumes:
       - engine-data:/app/data

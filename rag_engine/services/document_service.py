@@ -7,7 +7,9 @@
 import os
 import uuid
 from datetime import datetime
+from pathlib import Path
 from fastapi import UploadFile, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
@@ -45,7 +47,7 @@ class DocumentService:
     # ==================== 上传 ====================
 
     async def upload(self, file: UploadFile) -> DocumentUploadResponse:
-        """处理上传文件：验证→流式保存(哈希+大小)→去重→加载→分块→嵌入→存储"""
+        """处理上传文件：验证 → 流式保存(哈希+大小) → 线程池索引"""
         # 1. 验证文件类型
         ext = validate_extension(file.filename, settings.ALLOWED_EXTENSIONS)
 
@@ -56,7 +58,21 @@ class DocumentService:
             settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024,
         )
 
-        # 3. 查 ChromaDB 是否重复（此时文件已在磁盘，命中则清理）
+        # 3. 索引是同步重活（解析 / 分块 / Embedding 调用 / 写向量库）→ 线程池执行；
+        #    若留在事件循环上，上传大文件期间其他请求（含流式输出）会被卡住
+        return await run_in_threadpool(
+            self._index_document, saved_path, file_hash, file.filename, ext,
+        )
+
+    def _index_document(
+        self,
+        saved_path: Path,
+        file_hash: str,
+        original_filename: str,
+        ext: str,
+    ) -> DocumentUploadResponse:
+        """同步索引流程：查重 → 加载 → 分块 → 来源注入 → 嵌入入库（失败时补偿清理）"""
+        # 查 ChromaDB 是否重复（此时文件已在磁盘，命中则清理）
         store = self._get_store()
         existing = store.get(where={"file_hash": file_hash})
         if existing and existing["ids"]:
@@ -67,14 +83,14 @@ class DocumentService:
                 status_code=409,
                 detail=f"文件内容重复，已存在于 '{dup_meta.get('source', 'unknown')}'",
             )
-        # 4. 生成文档 ID
+        # 生成文档 ID
         doc_id = str(uuid.uuid4())
-        renamed = saved_path.name != file.filename
+        renamed = saved_path.name != original_filename
         try:
-            # 5. 加载文档
+            # 加载文档
             loader = detect_loader(str(saved_path), ext)
             docs = loader.load()
-            # 6. 为每个文档块附加元数据（来源追踪 + 去重标记）
+            # 为每个文档块附加元数据（来源追踪 + 去重标记）
             for doc in docs:
                 doc.metadata.update({
                     "doc_id": doc_id,
@@ -82,15 +98,15 @@ class DocumentService:
                     "file_hash": file_hash,
                     "upload_time": datetime.now().isoformat(),
                 })
-            # 7. 分块
+            # 分块
             chunks = self.text_splitter.split_documents(docs)
-            # 7.5 来源注入：每块正文前置 [文件名] 标识——多文档/多公司场景下检索与生成
-            #     都能感知 chunk 归属，避免"薪资"这类通用语义跨文档串扰
-            #     （用文件名而非"提取标题"：零成本、格式统一、无需启发式）
+            # 来源注入：每块正文前置 [文件名] 标识——多文档/多公司场景下检索与生成
+            # 都能感知 chunk 归属，避免"薪资"这类通用语义跨文档串扰
+            # （用文件名而非"提取标题"：零成本、格式统一、无需启发式）
             source_tag = os.path.splitext(saved_path.name)[0]
             for chunk in chunks:
                 chunk.page_content = f"[{source_tag}] {chunk.page_content}"
-            # 8. 嵌入并存入 ChromaDB（自动持久化）
+            # 嵌入并存入 ChromaDB（自动持久化）
             store.add_documents(chunks)
         except Exception as e:
             # 索引失败补偿清理：删孤儿文件 + 清可能已写入的半索引 chunks

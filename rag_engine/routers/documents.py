@@ -36,9 +36,11 @@ async def upload(
     summary="列出所有文档",
     description="返回知识库中所有已索引文档的摘要信息。",
 )
-async def list_documents(
+def list_documents(
     service: DocumentService = Depends(get_document_service),
 ) -> DocumentListResponse:
+    # 纯同步实现（ChromaDB 本地查询）：写 def 由 FastAPI 自动放入线程池执行；
+    # 若声明为 async def，同步查询会阻塞事件循环线程，卡住所有并发请求
     return service.list_documents()
 
 
@@ -48,8 +50,9 @@ async def list_documents(
     summary="删除文档",
     description="从向量库中删除指定文档及其所有分块。",
 )
-async def delete(
+def delete(
     doc_id: str,
     service: DocumentService = Depends(get_document_service),
 ) -> DocumentDeleteResponse:
+    # 同上：内部是同步的 ChromaDB 查询 + 文件删除，交给线程池执行
     return service.delete_document(doc_id)

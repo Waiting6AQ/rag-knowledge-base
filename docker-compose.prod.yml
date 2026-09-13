@@ -24,6 +24,8 @@ services:
     image: ${REGISTRY:-crpi-69vrskbekmelwihc.cn-guangzhou.personal.cr.aliyuncs.com}/waiting6aq/rag-engine:latest
     environment:
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:?请在 .env 设置 DASHSCOPE_API_KEY}
+      # 模型名透传：换模型只改服务器 .env（不用重建镜像）；未设置时用默认值
+      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-openai:qwen3.8-2.4t-a95b}
     volumes:
       - engine-data:/app/data
       - engine-cache:/app/.cache/huggingface
