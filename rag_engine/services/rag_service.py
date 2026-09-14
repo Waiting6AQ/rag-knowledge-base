@@ -180,8 +180,8 @@ class RAGService:
 
     # ==================== 5 个节点函数 ====================
 
-    def _node_summarize(self, state: RAGState) -> dict:
-        """节点0：历史消息过多时自动压缩旧消息为摘要"""
+    async def _node_summarize(self, state: RAGState) -> dict:
+        """节点0：历史消息过多时自动压缩旧消息为摘要（async — LLM 调用不占线程池位）"""
         msgs = state["messages"][:-1]     # 排除当前用户问题（还没被回答，不是完整轮次）
         window = 8                        # 未压缩消息达 8 条（4 完整轮次）时触发
         keep = 4                          # 压缩后保留最近 4 条
@@ -198,7 +198,7 @@ class RAGService:
 
         try:
             chain = self.summarize_prompt | self.llm | StrOutputParser()
-            result = chain.invoke({"messages": prompt_text})
+            result = await chain.ainvoke({"messages": prompt_text})
         except Exception as e:
             # 摘要失败降级：跳过本轮压缩，后续轮次再触发，管线不崩
             print(f"⚠️ 摘要节点异常: {type(e).__name__}: {e}")
@@ -206,9 +206,9 @@ class RAGService:
         done += compress
         return {"summary": f"\n历史摘要：{result}\n", "summarized_count": done}
 
-    def _node_rewrite_query(self, state: RAGState) -> dict:
+    async def _node_rewrite_query(self, state: RAGState) -> dict:
         """
-        节点1：多轮对话时的查询改写（指代消解）
+        节点1：多轮对话时的查询改写（指代消解）——async：LLM 调用不占线程池位
         例如："它有什么特点？" → "LangGraph 有什么特点？"
         messages[:-1] 排除当前问题（由 add_messages 自动追加）
         """
@@ -221,7 +221,7 @@ class RAGService:
         fresh = prev[done:]                        # 所有未压缩消息（≤ 8 条，summarize 节点保证）
         try:
             chain = self.rewrite_prompt | self.llm | StrOutputParser()
-            rewritten = chain.invoke({
+            rewritten = await chain.ainvoke({
                 "query": state["query"],
                 "chat_history": fresh,
             })
@@ -303,8 +303,9 @@ class RAGService:
             "sources": sources,
         }
 
-    def _node_generate_answer(self, state: RAGState) -> dict:
-        """节点3：有文档用 RAG 回答，没文档用普通聊天，返回 messages 由 add_messages 自动追加"""
+    async def _node_generate_answer(self, state: RAGState) -> dict:
+        """节点3：有文档用 RAG 回答，没文档用普通聊天，返回 messages 由 add_messages 自动追加
+        （async — 流式生成是本管线最长的 LLM 等待，异步化后不再占用线程池位）"""
         # messages[:-1] 排除当前问题（由 {query} 单独传入），避免重复
         prev = state["messages"][:-1]
         done = state.get("summarized_count", 0)    # 已压缩多少条
@@ -330,7 +331,7 @@ class RAGService:
         writer({"event": "progress", "data": "正在生成回答..."})
         full_answer = ""
         try:
-            for chunk in self.llm.stream(prompt_val):
+            async for chunk in self.llm.astream(prompt_val):
                 token = chunk.content
                 if not token:
                     continue
@@ -355,19 +356,19 @@ class RAGService:
             )],
         }
 
-    def _node_evaluate_confidence(self, state: RAGState) -> dict:
-        """节点4：置信度评估——无文档时跳过"""
+    async def _node_evaluate_confidence(self, state: RAGState) -> dict:
+        """节点4：置信度评估——无文档时跳过（async — LLM 调用不占线程池位）"""
         context = state.get("context", "")
         if not context:
             return {"confidence": 0.0}
 
         chain = self.eval_prompt | self.llm | StrOutputParser()
         try:
-            score = float(chain.invoke({
+            score = float((await chain.ainvoke({
                 "context": context,
                 "query": state["query"],
                 "answer": state["answer"],
-            }).strip())
+            })).strip())
             score = min(max(score, 0.0), 1.0)
         except (ValueError, AttributeError):
             score = 0.5
