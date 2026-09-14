@@ -1,0 +1,6 @@
+# Dev/test dependencies only. NOT installed into the production image
+# (the Dockerfile installs requirements.txt only).
+#
+# Install: pip install -r requirements-dev.txt -i https://mirrors.aliyun.com/pypi/simple/
+# Run:     cd rag_engine && .venv\Scripts\python -m pytest tests -q
+pytest>=8.0.0

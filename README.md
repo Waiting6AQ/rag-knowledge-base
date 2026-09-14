@@ -168,6 +168,23 @@ docker compose -f docker-compose.prod.yml up -d   # 自动拉取镜像并启动
 
 > 安全提示：默认账号 `admin/admin123` 与 JWT_SECRET 兜底值仅用于本地/演示环境；公网暴露前必须在服务器 `.env` 设置强 `JWT_SECRET` 并修改管理员密码。`.env` 含密钥，切勿提交到仓库或上传公开位置。
 
+## 测试
+
+单元测试聚焦**安全边界与易错分支**（不追求覆盖率），全部用 mock / fake 隔离外部依赖，不依赖数据库、网络与真实向量库，可秒级跑完。
+
+```bash
+# 业务后端：JUnit 5 + Mockito（11 个用例）
+#   覆盖：JWT 签发/过期/伪造签名、会话归属校验（防越权）、落库内容与标题规则
+cd backend && .\mvnw.cmd test
+
+# AI 引擎：pytest（13 个用例）
+#   覆盖：文件类型/大小校验、SHA256 去重、索引失败补偿清理、
+#         BM25 缓存复用与失效、空库守卫、chunk 来源注入
+cd rag_engine
+pip install -r requirements-dev.txt          # 仅测试依赖，不进生产镜像
+python -m pytest tests -q
+```
+
 ## License
 
 MIT
