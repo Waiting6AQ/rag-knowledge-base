@@ -29,6 +29,16 @@ spring:
     async:
       request-timeout: 600000   # SSE 异步超时 10 分钟（长流程问答可能跑很久，默认会掐断）
 
+  # SSE 异步执行器：StreamingResponseBody 的整段流都占用这里的线程
+  # 默认值（core=8 + 无界队列）会导致「队列永远不满 → 线程永不扩容」→ 并发流被卡在 8 条
+  task:
+    execution:
+      pool:
+        core-size: 32        # 常态可并发流数（线程多数时间在等 I/O）
+        max-size: 64         # 队列排满后的扩容上限
+        queue-capacity: 32   # 有界队列：排满则扩容，扩不动则快速拒绝（好过无声排队）
+      thread-name-prefix: sse-
+
 server:
   port: 8081
 
