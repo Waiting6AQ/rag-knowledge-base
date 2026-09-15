@@ -2,6 +2,8 @@
 # 阶段1：构建
 FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /app
+# 阿里云 Maven 镜像：国内构建更快，避免直连中央仓库时的下载中断
+COPY settings.xml /root/.m2/settings.xml
 COPY pom.xml .
 RUN mvn dependency:go-offline -B
 COPY src ./src
