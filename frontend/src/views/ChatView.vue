@@ -1,64 +1,106 @@
 <template>
-  <div class="sidebar">
-    <h2><span style="font-size:22px">✨</span> RAG 知识库</h2>
-    <nav>
-      <div class="nav-item" :class="{ active: !currentSessionId }" @click="newChat()" style="font-weight:600;">
-        💬 新对话
+  <div class="app-container">
+    <!-- 侧边栏 -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h2><span style="font-size:18px">✨</span> RAG 知识库</h2>
+        <p>RAG 问答 · 有据可依</p>
       </div>
-      <div style="margin-top:12px;display:flex;flex-direction:column;gap:4px;">
-        <div v-for="s in sessions" :key="s.id" class="conv-item">
-          <span class="title nav-item" :class="{ active: s.id === currentSessionId }"
-                style="margin-bottom:0;" @click="switchChat(s.id)">{{ s.title || '(空)' }}</span>
-          <button class="btn-icon" @click="deleteConv(s.id)" title="删除对话">✕</button>
+
+      <div class="conv-list">
+        <div class="conv-item" :class="{ active: !currentSessionId }" @click="newChat()" style="font-weight:600;">
+          <span class="title">💬 新对话</span>
+        </div>
+        <div v-for="s in sessions" :key="s.id" class="conv-item"
+             :class="{ active: sameId(s.id, currentSessionId) }" @click="switchChat(s.id)">
+          <span class="title">{{ s.title || '(空)' }}</span>
+          <span class="del" @click.stop="deleteConv(s.id)" title="删除对话">✕</span>
         </div>
       </div>
-    </nav>
 
-    <div class="upload-area">
-      <label for="file-upload">
-        <div class="upload-title"><span style="font-size:20px;">📁</span> 上传知识库文档</div>
-        <small>支持 .txt / .pdf / .md / .docx / .xlsx</small>
-      </label>
-      <input type="file" id="file-upload" accept=".txt,.pdf,.md,.docx,.xlsx" multiple @change="uploadFiles" />
-      <div class="upload-status">{{ uploadStatus }}</div>
-    </div>
+      <div class="upload-area">
+        <label for="file-upload">
+          <div class="upload-title"><span style="font-size:18px;">📁</span> 上传知识库文档</div>
+          <small>支持 .txt / .pdf / .md / .docx / .xlsx</small>
+        </label>
+        <input type="file" id="file-upload" accept=".txt,.pdf,.md,.docx,.xlsx" multiple @change="uploadFiles" />
+        <div class="upload-status">{{ uploadStatus }}</div>
+      </div>
 
-    <div class="doc-section">
-      <div class="doc-title">📚 已解析文档（{{ documents.length }}）</div>
-      <div class="doc-list">
-        <div v-for="d in documents" :key="d.doc_id" class="doc-list-item">
-          <span class="doc-name" :title="d.filename">{{ d.filename }}<small class="doc-chunks">（{{ d.chunk_count }} 块）</small></span>
-          <button class="btn-icon" @click="deleteDocument(d.doc_id)" title="删除文档">✕</button>
+      <div class="doc-section">
+        <div class="doc-title">📚 已解析文档（{{ documents.length }}）</div>
+        <div class="doc-list">
+          <div v-for="d in documents" :key="d.doc_id" class="doc-list-item">
+            <span class="doc-name" :title="d.filename">
+              {{ d.filename }}<small class="doc-chunks">（{{ d.chunk_count }} 块）</small>
+            </span>
+            <button class="del" @click="deleteDocument(d.doc_id)" title="删除文档">✕</button>
+          </div>
+          <div v-if="!documents.length" style="padding:8px 4px;">暂无文档，先上传再提问</div>
         </div>
-        <div v-if="!documents.length" style="padding:8px 4px;">暂无文档，先上传再提问</div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button @click="logout()">🚪 退出登录</button>
       </div>
     </div>
 
-    <div class="sidebar-footer">
-      <button @click="logout()">🚪 退出登录</button>
-    </div>
-  </div>
+    <!-- 主区域 -->
+    <div class="main">
+      <div class="topbar">
+        <div class="agent-avatar">✨</div>
+        <div class="agent-info">
+          <h3>RAG 知识库问答系统</h3>
+          <span>知识库 · {{ documents.length }} 份文档</span>
+        </div>
+      </div>
 
-  <div class="main">
-    <div class="header">RAG 知识库问答系统</div>
-    <div class="chat-area" ref="chatArea">
-      <div v-for="(m, i) in messages" :key="i" class="msg" :class="m.role">
-        <div class="avatar">{{ m.role === 'user' ? '👤' : '🤖' }}</div>
-        <div class="bubble-wrapper">
-          <div class="bubble md-body" :class="{ 'progress-msg': m.streaming }"
-               v-html="m.content ? renderMd(m.content) : '...'"></div>
-          <div class="source-tags" v-if="m.role === 'assistant' && m.sources && m.sources.length">
-            <span class="source-label">📎 引用来源</span>
-            <span v-for="s in m.sources" :key="s.index" class="file-tag">{{ s.source }}</span>
+      <div class="chat-area" ref="chatArea" @scroll="onScroll">
+        <!-- 空状态：代替原来的硬编码欢迎气泡 -->
+        <div v-if="!messages.length && !booting" class="empty-state">
+          <div class="empty-icon">✨</div>
+          <h3>RAG 知识库问答</h3>
+          <p>先上传文档，再向我提问 —— 我会基于文档内容回答并给出引用来源</p>
+          <div class="empty-hints">
+            <!-- 用 label + for 直接关联侧边栏的 file input：原生触发，无需 JS -->
+            <label class="empty-hint" for="file-upload">📁 上传知识库文档</label>
+            <!-- 用真实文件名提问，避免"这份文档"这种指代不明 -->
+            <button class="empty-hint" v-if="documents.length"
+                    @click="quickAsk('《' + documents[0].filename + '》主要讲了什么？')">
+              💡 《{{ documents[0].filename }}》讲了什么
+            </button>
           </div>
         </div>
+
+        <MessageItem v-for="m in messages" :key="m._id" :message="m">
+          <template #footer>
+            <!-- 带上 m.content：sources 事件在回答之前就到了，不加这个会在答案还没出来时
+                 就抢先显示"引用来源"，顺序上很奇怪 -->
+            <div class="source-tags" v-if="m.role === 'assistant' && m.content && m.sources && m.sources.length">
+              <span class="source-label">
+                <!-- 链环图标（内联 SVG 而不是 emoji：尺寸/线宽/颜色都可控）。
+                     stroke-width 是相对 viewBox(24) 的，实际线宽 = 2.5 × 15/24 ≈ 1.6px -->
+                <svg class="icon-link" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                </svg>
+                引用来源
+              </span>
+              <span v-for="s in m.sources" :key="s.index" class="file-tag">{{ s.source }}</span>
+            </div>
+          </template>
+        </MessageItem>
       </div>
-    </div>
-    <div class="status-bar">{{ status }}</div>
-    <div class="input-wrapper">
-      <div class="input-area">
-        <input v-model="input" placeholder="输入你的问题，按回车键发送..." @keydown.enter="send" :disabled="sending" />
-        <button @click="send" :disabled="sending">发送</button>
+
+      <button v-if="showScrollBtn" class="scroll-bottom" @click="scrollBottom" title="回到底部">↓</button>
+
+      <ChatInput v-model="input" :disabled="sending"
+                 placeholder="输入你的问题，按回车键发送..." @send="send" />
+
+      <div class="status-bar">
+        <span>{{ status }}</span>
+        <span></span>
       </div>
     </div>
   </div>
@@ -66,26 +108,52 @@
 
 <script setup>
 import { ref, reactive, onMounted, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import request from '../api/request'
-import { renderMd } from '../utils/md'
+import MessageItem from '../components/MessageItem.vue'
+import ChatInput from '../components/ChatInput.vue'
 
 const router = useRouter()
+const route = useRoute()
 
 const sessions = ref([])
 const messages = ref([])
 const documents = ref([])
-const currentSessionId = ref(null)
+// 初始值直接取自 URL（同步，不用等网络）：否则首屏会先高亮"新对话"，
+// 等接口回来才跳到真正的会话上，看起来像闪了一下
+const currentSessionId = ref(route.params.sessionId ? String(route.params.sessionId) : null)
 const input = ref('')
 const sending = ref(false)
 const status = ref('就绪')
 const uploadStatus = ref('')
 const chatArea = ref(null)
+const showScrollBtn = ref(false)
+const booting = ref(true)   // 首次加载中：压住空状态，避免它闪一下再被消息替换
+
+// 消息的本地唯一键（原先用数组下标做 key，加出现动画会渲染错位）
+let msgSeq = 0
+const nextId = () => ++msgSeq
+
+// 会话 id 统一按字符串比较：来自路由参数的是 string、来自接口的是 number，
+// 不统一会导致"刷新后侧边栏选中态丢失"（5 !== "5"）
+const sameId = (a, b) => a != null && b != null && String(a) === String(b)
 
 function scrollBottom() {
   nextTick(() => {
     if (chatArea.value) chatArea.value.scrollTop = chatArea.value.scrollHeight
   })
+}
+
+// 离底部超过 120px 才显示"回到底部"
+function onScroll() {
+  const el = chatArea.value
+  if (!el) return
+  showScrollBtn.value = el.scrollHeight - el.scrollTop - el.clientHeight > 120
+}
+
+function quickAsk(text) {
+  input.value = text
+  send()
 }
 
 // ======== 会话 ========
@@ -96,29 +164,41 @@ async function loadSessions() {
 
 function newChat() {
   currentSessionId.value = null
-  messages.value = [{
-    role: 'assistant',
-    content: '你好！我是 RAG 知识库问答助手。\n请先上传文档，然后向我提问。我会基于文档内容为你解答。',
-  }]
+  messages.value = []
   status.value = '就绪'
-  scrollBottom()
+  // 从 /chat/xxx 点"新对话"时把 URL 也退回去
+  if (route.params.sessionId) router.replace('/chat')
 }
 
 async function switchChat(id) {
-  currentSessionId.value = id
+  // 已经在这个会话上、且消息加载过了，才跳过重复请求。
+  // 必须带上 messages 判断：刷新时 currentSessionId 已从 URL 预置过，
+  // 只看 id 相等就会直接 return，历史消息永远加载不出来
+  if (sameId(id, currentSessionId.value) && messages.value.length) return
   status.value = '加载中...'
   try {
     const resp = await request.get(`/sessions/${id}`)
     const data = resp.data.data
+    // 必须在请求成功后再赋值：原来是先赋值再请求，失败时 ID 会残留成错值
+    // 统一存字符串，和侧边栏列表项（数字 id）比较时才对得上
+    currentSessionId.value = String(id)
     // sources 落库为 JSON 文本，历史加载时解析成数组供模板显示引用来源
     messages.value = data.messages.map((m) => ({
+      _id: nextId(),
       role: m.role,
       content: m.content,
       sources: m.sources ? JSON.parse(m.sources) : null,
     }))
     status.value = `对话: ${data.session.title || id}`
+    // 把 URL 同步成当前会话，否则点侧边栏切走后一刷新又跳回旧会话
+    if (!sameId(route.params.sessionId, id)) {
+      router.replace('/chat/' + id)
+    }
   } catch (e) {
-    status.value = '加载失败'
+    currentSessionId.value = null
+    messages.value = []
+    status.value = e.response?.status === 403 ? '无权访问该会话' : '会话不存在或加载失败'
+    router.replace('/chat')
   }
   scrollBottom()
 }
@@ -127,7 +207,9 @@ async function deleteConv(id) {
   if (!confirm('确定删除该对话？')) return
   try {
     await request.delete(`/sessions/${id}`)
-    if (currentSessionId.value === id) newChat()
+    // 用 sameId 比较：id 来自列表项是数字，currentSessionId 里存的是字符串，
+    // 用 === 永远不相等 → 删掉当前对话后聊天区不会清空
+    if (sameId(currentSessionId.value, id)) newChat()
     loadSessions()
   } catch (e) {
     alert('删除失败: ' + e.message)
@@ -204,10 +286,14 @@ async function send() {
   input.value = ''
   status.value = '处理中...'
 
-  messages.value.push({ role: 'user', content: q })
+  messages.value.push({ _id: nextId(), role: 'user', content: q })
   // 必须用 reactive：直接改原始对象 Vue 渲染不到
   // 占位文字对齐原版：progress 状态显示在 AI 气泡内（"正在分析问题..."）
-  const aiMsg = reactive({ role: 'assistant', content: '正在分析问题...', streaming: true, sources: null })
+  const aiMsg = reactive({
+    _id: nextId(), role: 'assistant', content: '', streaming: true,
+    sources: null,
+    progress: '正在处理...',   // 进度行文案，随 SSE 的 progress 事件更新
+  })
   messages.value.push(aiMsg)
   scrollBottom()
 
@@ -245,8 +331,8 @@ async function send() {
           const event = pendingEvent
           pendingEvent = null
           if (event === 'progress') {
-            // 对齐原版：进度状态显示在 AI 气泡内
-            aiMsg.content = data.status
+            // 进度独立成行（不再写进气泡正文）：多阶段依次更新，也不会冲掉已显示的内容
+            aiMsg.progress = data.status
           } else if (event === 'sources') {
             aiMsg.sources = data
           } else if (event === 'error') {
@@ -256,7 +342,11 @@ async function send() {
           } else if (event === 'done') {
             status.value = (data.rag_used ? '✅ RAG 检索完成' : '✅ 回答完成')
               + (data.confidence ? ` · 置信度 ${Math.round(data.confidence * 100)}%` : '')
-            currentSessionId.value = data.session_id
+            currentSessionId.value = String(data.session_id)
+            // URL 同步：会话 id 是首条消息发出后才由后端生成的
+            if (!sameId(route.params.sessionId, data.session_id)) {
+              router.replace('/chat/' + data.session_id)
+            }
             loadSessions()
           }
         } else if (line.startsWith('data: ')) {
@@ -264,6 +354,7 @@ async function send() {
           answer += data.token
           aiMsg.content = answer
           aiMsg.streaming = false
+          aiMsg.progress = null   // 开始出内容了，进度行让位
         }
       }
       scrollBottom()
@@ -283,13 +374,18 @@ async function send() {
     status.value = '请求失败'
   } finally {
     sending.value = false
+    aiMsg.progress = null   // 整个流程结束，进度行撤掉（引用来源保留）
     scrollBottom()
   }
 }
 
-onMounted(() => {
-  newChat()
-  loadSessions()
-  loadDocuments()
+onMounted(async () => {
+  await loadSessions()
+  loadDocuments()   // 文档列表不阻塞主流程
+  // 地址栏里带了会话 id（刷新 / 直接粘贴链接）就恢复它，否则开新会话
+  const id = route.params.sessionId
+  if (id) await switchChat(id)
+  else newChat()
+  booting.value = false
 })
 </script>

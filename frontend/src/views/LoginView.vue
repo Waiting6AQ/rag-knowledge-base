@@ -1,7 +1,7 @@
 <template>
   <div class="login-wrap">
     <div class="login-card">
-      <div class="login-logo">🤖</div>
+      <div class="login-logo">✨</div>
       <h1>RAG 知识库问答系统</h1>
       <p class="sub">RAG · Spring Boot + Python AI</p>
 
@@ -66,45 +66,78 @@ async function submit() {
 
 <style scoped>
 .login-wrap {
-  width: 100%;
-  height: 100vh;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 24px;
+  /* 浅绿底，和侧边栏、聊天区同一色系（indigo 留给按钮等强调元素） */
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(99, 102, 241, 0.12) 0%, transparent 55%),
-    linear-gradient(160deg, #eef2ff 0%, #f8fafc 45%, #e8efe0 100%);
+    radial-gradient(ellipse at 50% 0%, rgba(140, 165, 120, .18) 0%, transparent 55%),
+    linear-gradient(160deg, #f4f8f0 0%, #f8fafc 45%, #e8efe0 100%);
 }
+
 .login-card {
-  width: 380px;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0,0,0,.25);
+  width: 100%;
+  max-width: 380px;      /* 窄屏也不会溢出 */
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   padding: 40px 36px;
   text-align: center;
 }
-.login-logo {
-  font-size: 44px;
-  margin-bottom: 8px;
-}
-h1 { font-size: 20px; color: #333; }
-.sub { font-size: 12px; color: #a0aec0; margin: 6px 0 24px; }
+
+.login-logo { font-size: 44px; margin-bottom: 8px; }
+h1 { font-size: 20px; color: var(--text-main); font-weight: 700; }
+.sub { font-size: 12px; color: var(--text-muted); margin: 6px 0 24px; }
+
 .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
 .tabs button {
-  flex: 1; padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px;
-  background: #fff; color: #6366f1; cursor: pointer; font-size: 13px;
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--primary-2);
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  transition: background .15s, color .15s, border-color .15s;
 }
-.tabs button.active { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; border: none; }
+.tabs button:hover { border-color: var(--primary-2); }
+.tabs button.active { background: var(--primary-gradient); color: #fff; border-color: transparent; }
+
 input {
-  width: 100%; padding: 12px 14px; margin-bottom: 12px;
-  border: 2px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none;
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-main);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
 }
-input:focus { border-color: #6366f1; }
-.error { color: #e53e3e; font-size: 12px; margin-bottom: 10px; }
+input:focus {
+  border-color: var(--primary-2);
+  box-shadow: 0 0 0 4px var(--primary-ring);
+}
+
+.error { color: var(--danger); font-size: 12px; margin-bottom: 10px; }
+
 .submit {
-  width: 100%; padding: 12px; border: none; border-radius: 10px;
-  background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff;
-  font-size: 15px; cursor: pointer;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--primary-gradient);
+  color: #fff;
+  font-size: 15px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity .15s;
 }
+.submit:hover:not(:disabled) { opacity: .92; }
 .submit:disabled { opacity: .5; cursor: not-allowed; }
 </style>
