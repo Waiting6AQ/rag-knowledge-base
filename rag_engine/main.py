@@ -32,12 +32,29 @@ from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """预加载重排序模型，避免首次提问等待下载"""
+    """启动：初始化 PostgreSQL + 预加载重排序模型；关闭：释放数据库连接"""
+    # ---- ① PostgreSQL ----
+    # 顺序：先 init_checkpointer（自带重试，会一直等到 PG 就绪），再 init_database 建业务表
+    # checkpointer 必须在事件循环里构造 —— AsyncPostgresSaver.__init__ 会取 running loop
+    from core.database import dispose_engine, init_database
+    from core.postgres import close_pool, init_checkpointer
+
+    await init_checkpointer()
+    await init_database()
+    print("✅ PostgreSQL 初始化完成（checkpoint 表 + 业务表）")
+
+    # ---- ② 重排序模型 ----
     from sentence_transformers import CrossEncoder
     print("📦 正在加载重排序模型 BAAI/bge-reranker-base ...")
     CrossEncoder("BAAI/bge-reranker-base", model_kwargs={"torch_dtype": "auto"})
     print("✅ 重排序模型加载完成")
+
     yield
+
+    # ---- 关闭：释放连接（顺序与建立时相反）----
+    await dispose_engine()
+    await close_pool()
+    print("👋 PostgreSQL 连接已释放")
 
 # ==================== 创建应用 ====================
 
@@ -84,6 +101,16 @@ async def root():
 # ==================== 启动入口 ====================
 
 if __name__ == "__main__":
+    import sys
     import uvicorn
+
     reload = os.getenv("DISABLE_RELOAD", "").lower() != "true"
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=reload)
+
+    # Windows 必须显式指定事件循环工厂：uvicorn 在 win32 上硬编码用 ProactorEventLoop，
+    # 而 psycopg 的异步模式不支持它。Linux 容器不传，保留 uvicorn 默认（uvloop）。
+    extra = (
+        {"loop": "core.compat:selector_loop_factory"}
+        if sys.platform == "win32"
+        else {}
+    )
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=reload, **extra)

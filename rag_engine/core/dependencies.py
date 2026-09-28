@@ -7,10 +7,11 @@ async 依赖会自动被 await。
 单例模式：通过模块级缓存变量确保昂贵资源只初始化一次。
 """
 import threading
-import aiosqlite
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from core.config import settings
+from core.database import get_session_factory
+# checkpointer 的实现与连接池在 core/postgres.py（这里只做转发，保持依赖注入入口统一）
+from core.postgres import get_checkpointer  # noqa: F401
 from utils.embeddings import AliyunEmbeddings
 from utils.llm import create_llm
 from services.document_service import DocumentService
@@ -23,7 +24,6 @@ from services.bm25_index import Bm25IndexCache
 _embeddings = None
 _llm = None
 _vector_store = None
-_checkpointer = None
 _document_service = None
 _rag_service = None
 _conversation_service = None
@@ -66,15 +66,6 @@ def get_vector_store():
     return _vector_store
 
 
-async def get_checkpointer() -> AsyncSqliteSaver:
-    """AsyncSqliteSaver 单例，支持 astream/ainvoke 等异步操作"""
-    global _checkpointer
-    if _checkpointer is None:
-        conn = await aiosqlite.connect(settings.CHECKPOINT_DB_PATH)
-        _checkpointer = AsyncSqliteSaver(conn)
-    return _checkpointer
-
-
 # ==================== 服务层 ====================
 
 def get_bm25_cache() -> Bm25IndexCache:
@@ -111,8 +102,8 @@ async def get_rag_service() -> RAGService:
 
 
 def get_conversation_service() -> ConversationService:
-    """对话元数据服务单例"""
+    """对话元数据服务单例（会话工厂由 lifespan 初始化的引擎提供）"""
     global _conversation_service
     if _conversation_service is None:
-        _conversation_service = ConversationService(db_path=settings.APP_DB_PATH)
+        _conversation_service = ConversationService(session_factory=get_session_factory())
     return _conversation_service

@@ -15,8 +15,13 @@ langchain-classic>=1.0.0
 
 # --- LangGraph (workflow + checkpoint persistence) ---
 langgraph>=1.0.0,<2.0.0
-langgraph-checkpoint-sqlite>=3.0.0
-aiosqlite>=0.20.0
+langgraph-checkpoint-postgres>=3.1.2
+
+# --- Database (PostgreSQL + ORM) ---
+# psycopg is the driver shared by LangGraph saver and SQLAlchemy
+# (SQLAlchemy side connects via postgresql+psycopg:// scheme)
+sqlalchemy[asyncio]>=2.0.0
+psycopg[binary,pool]>=3.3.0
 
 # --- DashScope (LLM + Embeddings) ---
 dashscope>=1.20.0

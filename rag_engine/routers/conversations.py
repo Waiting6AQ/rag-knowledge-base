@@ -3,9 +3,7 @@
 
 提供对话列表、详情查看、删除功能。
 """
-from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.concurrency import run_in_threadpool
 from core.dependencies import get_conversation_service, get_rag_service
 from models.conversation import (
     ConversationListResponse,
@@ -24,13 +22,12 @@ router = APIRouter()
     response_model=ConversationListResponse,
     summary="列出所有对话",
 )
-def list_conversations(
+async def list_conversations(
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     service: ConversationService = Depends(get_conversation_service),
 ) -> ConversationListResponse:
-    # 纯同步实现（SQLite 查询）：写 def 由 FastAPI 放入线程池执行，避免阻塞事件循环
-    return service.list_conversations(limit=limit, offset=offset)
+    return await service.list_conversations(limit=limit, offset=offset)
 
 
 @router.get(
@@ -43,8 +40,7 @@ async def get_conversation(
     conv: ConversationService = Depends(get_conversation_service),
     rag: RAGService = Depends(get_rag_service),
 ) -> ConversationDetailResponse:
-    # 同步的 SQLite 读取移出事件循环（run_in_threadpool 期间事件循环可服务其他请求）
-    detail = await run_in_threadpool(conv.get_conversation, conversation_id)
+    detail = await conv.get_conversation(conversation_id)
     if detail is None:
         raise HTTPException(status_code=404, detail="对话不存在")
 
@@ -79,9 +75,10 @@ async def delete_conversation(
     service: ConversationService = Depends(get_conversation_service),
     rag: RAGService = Depends(get_rag_service),
 ) -> ConversationDeleteResponse:
-    # 同步的 SQLite 删除移出事件循环
-    if not await run_in_threadpool(service.delete, conversation_id):
-        raise HTTPException(status_code=404, detail="对话不存在")
-    # 同时删除 checkpoints.db 中的对话数据（真异步，原样保留）
+    # 顺序：先删 checkpoint，再删元数据。
+    # 反过来的话，删 checkpoint 失败时元数据已消失，那条 checkpoint 就成了
+    # 用户看不到、也再没有入口能删掉的孤儿数据
     await rag.delete_history(conversation_id)
+    if not await service.delete(conversation_id):
+        raise HTTPException(status_code=404, detail="对话不存在")
     return ConversationDeleteResponse(conversation_id=conversation_id)

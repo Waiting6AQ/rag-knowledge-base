@@ -20,15 +20,41 @@ services:
       retries: 10
     restart: unless-stopped
 
+  # 引擎的会话状态（LangGraph checkpoint）与对话元数据
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: ${PG_USER:-engine}
+      # ⚠️ 密码含 @ : / 等特殊字符时需 URL 编码，否则 DSN 解析会出错
+      POSTGRES_PASSWORD: ${PG_PASSWORD:?请在 .env 设置 PG_PASSWORD}
+      POSTGRES_DB: rag_engine
+      TZ: Asia/Shanghai
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      # $$ 是 compose 转义：留给容器内 shell 展开，避免 compose 在解析期插值
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s   # 首次 initdb 要时间，别算进 retries
+    # 不映射宿主端口：内网服务，只有 engine 访问
+    restart: unless-stopped
+
   engine:
     image: ${REGISTRY:-crpi-69vrskbekmelwihc.cn-guangzhou.personal.cr.aliyuncs.com}/waiting6aq/rag-engine:latest
     environment:
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:?请在 .env 设置 DASHSCOPE_API_KEY}
       # 模型名透传：换模型只改服务器 .env（不用重建镜像）；未设置时用默认值
       LLM_MODEL_NAME: ${LLM_MODEL_NAME:-openai:qwen3.8-2.4t-a95b}
+      # 会话状态 + 对话元数据都在 PG（容器内没有 localhost，走服务名 postgres）
+      POSTGRES_DSN: postgresql://${PG_USER:-engine}:${PG_PASSWORD:?}@postgres:5432/rag_engine
     volumes:
       - engine-data:/app/data
       - engine-cache:/app/.cache/huggingface
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
   backend:
@@ -57,3 +83,4 @@ volumes:
   mysql-data:
   engine-data:
   engine-cache:
+  pg-data:

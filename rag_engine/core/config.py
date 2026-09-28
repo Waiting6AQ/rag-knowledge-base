@@ -29,10 +29,15 @@ class Settings(BaseSettings):
     TEMPERATURE: float = 0.1       # LLM 温度，越低越保守（RAG 需要确定性回答）
     MAX_TOKENS: int = 2000         # LLM 最大输出长度（1000 时详细回答被截断）
 
+    # === PostgreSQL（会话状态 + 对话元数据） ===
+    # 必填：不配则启动即报错（fail-fast，与 DASHSCOPE_API_KEY 一致）
+    # 本地开发连 localhost；容器内由 compose 注入服务名 postgres（见 docker-compose.yml）
+    POSTGRES_DSN: str
+    PG_POOL_MIN: int = 2           # psycopg 池下限（LangGraph checkpoint 用）
+    PG_POOL_MAX: int = 10          # psycopg 池上限
+
     # === 存储路径（基于项目根目录，不受 VS Code 启动位置影响） ===
     CHROMA_PERSIST_DIR: str = str(BASE_DIR / "data" / "chroma_db")
-    CHECKPOINT_DB_PATH: str = str(BASE_DIR / "data" / "checkpoints.db")
-    APP_DB_PATH: str = str(BASE_DIR / "data" / "app.db")
     UPLOAD_DIR: str = str(BASE_DIR / "data" / "uploads")
 
     # === 文件上传限制 ===

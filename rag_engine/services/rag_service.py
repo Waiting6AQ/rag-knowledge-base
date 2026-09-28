@@ -6,7 +6,7 @@ RAG 服务 — 项目核心
 
 特性：
 - 混合检索：向量检索（语义）+ BM25（关键词），互补提升召回率
-- 多轮对话：自动指代消解 + add_messages 自动追加 + AsyncSqliteSaver 持久化
+- 多轮对话：自动指代消解 + add_messages 自动追加 + AsyncPostgresSaver 持久化
 - 流式输出：SSE 格式，逐阶段返回进度（来源 → 回答 → 置信度 → 完成）
 """
 import json
@@ -15,7 +15,7 @@ from typing import TypedDict, Annotated, Any, AsyncGenerator
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.config import get_stream_writer
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.output_parsers import StrOutputParser
@@ -97,10 +97,10 @@ class RAGService:
       混合检索取两者交集，互补短板
     """
 
-    def __init__(self, vector_store, llm, checkpointer: AsyncSqliteSaver, embeddings, bm25_cache):
+    def __init__(self, vector_store, llm, checkpointer: AsyncPostgresSaver, embeddings, bm25_cache):
         self.vector_store = vector_store    # ChromaDB 实例
         self.llm = llm                      # Qwen LLM
-        self.checkpointer = checkpointer    # AsyncSqliteSaver（自动持久化对话状态）
+        self.checkpointer = checkpointer    # AsyncPostgresSaver（自动持久化对话状态）
         self.embeddings = embeddings        # AliyunEmbeddings
         self.bm25_cache = bm25_cache        # BM25 倒排索引共享缓存（文档变更由 document_service 失效）
 
@@ -135,7 +135,7 @@ class RAGService:
             ("human", "对话历史：\n{messages}"),
         ])
 
-        # 编译 LangGraph 管线（带 AsyncSqliteSaver 自动持久化）
+        # 编译 LangGraph 管线（带 AsyncPostgresSaver 自动持久化）
         self.graph = self._build_graph()
 
     # ==================== 重排序 ====================
@@ -216,7 +216,7 @@ class RAGService:
         prev = state["messages"][:-1]
 
         writer = get_stream_writer()
-        writer({"event": "progress", "data": "正在分析问题..."})
+        writer({"event": "progress", "data": "正在分析问题"})
         done = state.get("summarized_count", 0)    # 已压缩多少条
         fresh = prev[done:]                        # 所有未压缩消息（≤ 8 条，summarize 节点保证）
         try:
@@ -249,16 +249,19 @@ class RAGService:
         all_docs, bm25_retriever = self.bm25_cache.ensure()
 
         if not all_docs:
+            # 即使没检索到也要发一次空的 sources：否则前端分不清"没找到"和"还没开始检索"
+            get_stream_writer()({"event": "sources", "data": []})
             return {"context": "", "sources": [], "documents": []}
 
         # 前置过滤：用向量相似度检查是否有相关文档，同时建 score_map 供后置过滤
         scored = self.vector_store.similarity_search_with_score(query, k=20)
         score_map = {doc.id: s for doc, s in scored if s < 1.5}
         if not score_map:
+            get_stream_writer()({"event": "sources", "data": []})
             return {"context": "", "sources": [], "documents": []}
 
         writer = get_stream_writer()
-        writer({"event": "progress", "data": "正在检索文档..."})
+        writer({"event": "progress", "data": "正在检索文档"})
 
         # 向量检索器（语义匹配）
         vector_retriever = self.vector_store.as_retriever(
@@ -328,7 +331,13 @@ class RAGService:
 
         # 逐 token 流式生成，writer 将每个 token 推送到 chat_stream
         writer = get_stream_writer()
-        writer({"event": "progress", "data": "正在生成回答..."})
+        # 把检索到的篇数直接写进文案：前端不用自己拼，也避免两处状态互相覆盖
+        # 文案不带省略号 —— 动态省略号由前端画（引擎写了会变成双份）
+        n_sources = len(state.get("sources", []))
+        if n_sources:
+            writer({"event": "progress", "data": f"正在参考 {n_sources} 篇文档生成回答"})
+        else:
+            writer({"event": "progress", "data": "未找到相关文档，正在用通用知识回答"})
         full_answer = ""
         try:
             async for chunk in self.llm.astream(prompt_val):
@@ -360,7 +369,11 @@ class RAGService:
         """节点4：置信度评估——无文档时跳过（async — LLM 调用不占线程池位）"""
         context = state.get("context", "")
         if not context:
+            # 没有文档时直接跳过评估，不发进度（瞬时返回，提示了反而闪一下）
             return {"confidence": 0.0}
+
+        # 回答出完到 done 之间有一段评估耗时：不提示的话看起来像卡住了
+        get_stream_writer()({"event": "progress", "data": "正在评估回答置信度"})
 
         chain = self.eval_prompt | self.llm | StrOutputParser()
         try:
@@ -395,14 +408,15 @@ class RAGService:
         return []
 
     async def delete_history(self, thread_id: str):
-        """删除对话的 checkpoint 数据（配合 ConversationService 的元数据删除）"""
-        await self.checkpointer.conn.execute(
-            "DELETE FROM checkpoints WHERE thread_id = ?", (thread_id,)
-        )
-        await self.checkpointer.conn.execute(
-            "DELETE FROM writes WHERE thread_id = ?", (thread_id,)
-        )
-        await self.checkpointer.conn.commit()
+        """删除该 thread 的全部 checkpoint 数据（配合 ConversationService 的元数据删除）
+
+        用官方 adelete_thread 而非裸 SQL，原因有三：
+        - PG 版 saver.conn 是连接池对象，没有 .execute()
+        - PG 版表名是 checkpoint_blobs / checkpoint_writes（SQLite 叫 writes），
+          blob 还单独拆了一张表——照抄旧 SQL 既会报错、也删不干净
+        - 它一次清三张表，且与 saver 内部锁的并发写是安全的
+        """
+        await self.checkpointer.adelete_thread(thread_id)
 
     async def chat(self, query: str, conversation_id: str | None = None,
                    temperature: float = 0.1, top_k: int = 5) -> ChatResponse:
@@ -410,7 +424,7 @@ class RAGService:
         非流式 RAG 查询
 
         完整执行 5 节点管线，返回最终结果。
-        AsyncSqliteSaver 自动保存对话状态，下次用同 conversation_id 即可多轮对话。
+        AsyncPostgresSaver 自动保存对话状态，下次用同 conversation_id 即可多轮对话。
         """
         if conversation_id is None:
             conversation_id = str(uuid.uuid4())
