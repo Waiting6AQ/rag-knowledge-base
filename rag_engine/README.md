@@ -7,7 +7,7 @@
 - **三层检索过滤链路**：前置过滤(建 score_map) → 后置过滤(剔除 BM25 噪声) → CrossEncoder 精排(阈值 0.3)
 - **混合检索**：向量语义匹配 + BM25 关键词匹配，Ensemble RRF 融合（权重 0.6/0.4），互补提升召回率
 - **CrossEncoder 重排序**：`BAAI/bge-reranker-base` 联合编码精排，低分文档直接丢弃，消除噪声干扰
-- **多轮对话**：自动指代消解 + `add_messages` 消息管理 + AsyncSqliteSaver 状态持久化，重启不丢失
+- **多轮对话**：自动指代消解 + `add_messages` 消息管理 + AsyncPostgresSaver 状态持久化，重启不丢失
 - **上下文自动摘要**：消息超量时增量压缩（窗口 8 条 / 保留 4 条），长对话不丢关键信息
 - **Token 级流式输出**：SSE 格式，打字机效果 + 实时进度反馈（分析问题 → 检索文档 → 生成回答）
 - **来源追踪**：回答附带引用来源标签，持久化到 checkpoint，刷新页面不丢失
@@ -25,7 +25,7 @@
 | LLM        | 通义千问 `qwen3.7-max`（DashScope），备用模型自动切换            |
 | Embeddings | DashScope `qwen3.7-text-embedding`                               |
 | 向量存储   | ChromaDB 本地持久化                                              |
-| 对话持久化 | LangGraph AsyncSqliteSaver + SQLite（双库：checkpoint + 元数据） |
+| 对话持久化 | LangGraph AsyncPostgresSaver + PostgreSQL（checkpoint 与对话元数据） |
 | 重排序     | CrossEncoder `BAAI/bge-reranker-base`                            |
 | 混合检索   | EnsembleRetriever + BM25Retriever + RRF 融合                     |
 | 流式输出   | `get_stream_writer()` + `stream_mode="custom"`                   |
@@ -136,6 +136,7 @@ python eval_runner.py
 ### 环境要求
 
 - Python 3.12+
+- PostgreSQL 18（本地开发需要；Docker 部署由 compose 提供）
 - DashScope API Key（阿里云百炼）
 
 ### 安装
@@ -155,6 +156,9 @@ pip install -r requirements.txt
 
 ```env
 DASHSCOPE_API_KEY=sk-your-key-here
+# 本地开发要另配 PostgreSQL（库需先建好：CREATE DATABASE rag_engine;）
+# Docker 部署时不用配，由 docker-compose.yml 注入容器内服务名
+POSTGRES_DSN=postgresql://postgres:your_password@localhost:5432/rag_engine
 ```
 
 也可以通过环境变量设置。
@@ -184,7 +188,7 @@ python main.py
 
 ```bash
 docker build -t rag-app .
-docker run -p 8000:8000 -v huggingface_cache:/app/.cache/huggingface -e DASHSCOPE_API_KEY rag-app
+docker run -p 8000:8000 -v huggingface_cache:/app/.cache/huggingface -e DASHSCOPE_API_KEY -e POSTGRES_DSN rag-app
 ```
 
 ## License

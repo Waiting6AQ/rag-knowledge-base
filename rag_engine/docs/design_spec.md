@@ -3,15 +3,19 @@
 ## 目录结构
 
 ```
-rag_fastapi/
+rag_engine/
 ├── main.py                     # FastAPI 入口
 ├── core/
 │   ├── config.py               # 配置（pydantic-settings）
-│   └── dependencies.py         # 依赖注入
+│   ├── dependencies.py         # 依赖注入
+│   ├── database.py             # SQLAlchemy 引擎（业务表）
+│   ├── postgres.py             # psycopg 连接池 + LangGraph checkpointer
+│   └── compat.py               # 平台兼容（Windows 事件循环策略）
 ├── models/
 │   ├── document.py
 │   ├── chat.py
-│   └── conversation.py
+│   ├── conversation.py
+│   └── tables.py               # SQLAlchemy ORM 模型
 ├── routers/
 │   ├── documents.py
 │   ├── chat.py
@@ -25,17 +29,14 @@ rag_fastapi/
 │   ├── llm.py                  # LLM 工厂
 │   └── file_utils.py           # 文件工具
 ├── data/                       # gitignore
-│   ├── chroma_db/
-│   ├── checkpoints.db
-│   ├── app.db
-│   └── uploads/
+│   ├── chroma_db/              # 向量库（文档元信息也在这里的 chunk metadata）
+│   └── uploads/                # 上传的原始文档
 ├── rag_eval/                   # 离线评测
 │   ├── test_docs/              # 测试文档
 │   ├── eval_questions.json     # 标注问题集
 │   └── eval_runner.py          # 跑分脚本
 ├── static/                     # Web 前端
 ├── docs/                       # 项目文档
-├── dev_logs/                   # 开发日志与 Bug 记录
 ├── Dockerfile                  # Docker 镜像构建
 ├── .dockerignore
 ├── .env / .env.example / .gitignore

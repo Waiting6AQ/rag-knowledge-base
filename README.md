@@ -51,7 +51,7 @@ Spring Boot 业务后端 (:8081)
     Python RAG 引擎 (:8000)
     │  LangGraph：分析问题 → 检索文档 → 生成回答（向量 + BM25 + 精排）
     ▼
-SQLite + ChromaDB（checkpoint 多轮上下文 / 向量索引）
+PostgreSQL + ChromaDB（checkpoint 多轮上下文 / 向量索引）
 ```
 
 ## AI 引擎核心链路（rag_engine）
@@ -68,7 +68,17 @@ LangGraph 5 节点管线：`对话摘要 → 问题改写 → 文档检索 → �
 
 ## 界面预览
 
-![RAG 知识库问答界面](docs/screenshots/rag-chat.png)
+**文档管理**
+
+![文档管理](docs/screenshots/rag-chat-1.png)
+
+**检索提示**
+
+![检索提示](docs/screenshots/rag-chat-2.png)
+
+**引用来源**
+
+![引用来源](docs/screenshots/rag-chat-4.png)
 
 ## 快速开始
 
@@ -76,6 +86,7 @@ LangGraph 5 节点管线：`对话摘要 → 问题改写 → 文档检索 → �
 
 - JDK 17+、Node 18+、Python 3.12+
 - MySQL 8+（root 密码通过 `backend/.env` 的 `DB_PASSWORD` 提供，见下方配置步骤）
+- PostgreSQL 18（本地开发需要，跑引擎用；Docker 部署由 compose 提供）
 - DashScope API Key（rag_engine/.env）
 
 ### 配置
@@ -85,7 +96,7 @@ LangGraph 5 节点管线：`对话摘要 → 问题改写 → 文档检索 → �
 ```bash
 # AI 引擎密钥（DashScope）
 cd rag_engine
-copy .env.example .env      # 填入 DASHSCOPE_API_KEY
+copy .env.example .env      # 填入 DASHSCOPE_API_KEY 和 POSTGRES_DSN
 cd ..
 
 # 业务后端数据库/密钥
@@ -133,11 +144,11 @@ npm run dev
 
 ## Docker 部署（可选）
 
-一条命令启动完整系统（MySQL + 引擎 + Java 后端 + 前端），无需本地安装 Python/Node/JDK：
+一条命令启动完整系统（MySQL + PostgreSQL + 引擎 + Java 后端 + 前端），无需本地安装 Python/Node/JDK：
 
 ```powershell
 # 1. 配置：根目录 .env（已 gitignore），复制模板填入真实值
-Copy-Item .env.example .env    # 填 DB_PASSWORD（容器内 MySQL，随便设）+ DASHSCOPE_API_KEY
+Copy-Item .env.example .env    # 填 DB_PASSWORD、PG_PASSWORD（容器内数据库，随便设）+ DASHSCOPE_API_KEY
 
 # 2. 构建并启动（首次约 10-20 分钟；之后直接 up -d 秒起）
 docker compose up -d --build
@@ -147,7 +158,7 @@ docker compose logs -f backend    # 看到"已创建默认管理员账号 admin"
 访问 `http://localhost:8080`（nginx 托管前端 + 代理 /api，无跨域）；后端 API 也可直连 `http://localhost:8081`。
 
 - **架构落地**：mysql/engine 不暴露宿主端口（"Python 不出内网"在部署层生效），容器间用服务名互访
-- **数据**：账号/会话/消息在 mysql 卷；引擎的文档/向量库与 reranker 模型缓存也在卷中（engine-data / engine-cache）——`down` 全部保留，`down -v` 才清空；首次问答若需下载重排模型会稍慢，之后不再重复下载
+- **数据**：账号/会话/消息在 mysql 卷；引擎的文档/向量库与 reranker 模型缓存也在卷中（engine-data / engine-cache）；会话状态在 pg-data 卷——`down` 全部保留，`down -v` 才清空；首次问答若需下载重排模型会稍慢，之后不再重复下载
 - **结束**：`docker compose stop`（保留现场，下次秒开）或 `docker compose down`
 
 ### 镜像化部署（服务器）

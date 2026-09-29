@@ -26,7 +26,7 @@
 
 ## 非功能需求
 
-- 数据持久化（ChromaDB + SQLite 双库）
+- 数据持久化（ChromaDB + PostgreSQL）
 - LangGraph 5 节点管线编排
 - 模块化架构，可扩展
 - 中文注释和文档
