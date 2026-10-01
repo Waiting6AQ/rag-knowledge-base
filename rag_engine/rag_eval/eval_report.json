@@ -1,77 +1,77 @@
 {
-  "timestamp": "2026-06-25 10:32:44",
+  "timestamp": "2026-09-30 22:46:25",
   "stats": {
     "total": 50,
     "categories": {
       "RAG基础": {
         "count": 3,
-        "total_confidence": 3.0,
+        "total_confidence": 2.8,
         "total_kw_rate": 3.0,
-        "avg_confidence": 1.0,
+        "avg_confidence": 0.933,
         "avg_kw_hit_rate": 1.0
       },
       "RAG技术": {
         "count": 8,
-        "total_confidence": 8.0,
-        "total_kw_rate": 8.0,
-        "avg_confidence": 1.0,
-        "avg_kw_hit_rate": 1.0
+        "total_confidence": 7.8,
+        "total_kw_rate": 7.5,
+        "avg_confidence": 0.975,
+        "avg_kw_hit_rate": 0.938
       },
       "RAG优化": {
         "count": 1,
         "total_confidence": 1.0,
-        "total_kw_rate": 0.75,
+        "total_kw_rate": 1.0,
         "avg_confidence": 1.0,
-        "avg_kw_hit_rate": 0.75
+        "avg_kw_hit_rate": 1.0
       },
       "RAG实践": {
         "count": 1,
         "total_confidence": 1.0,
-        "total_kw_rate": 0.75,
+        "total_kw_rate": 1.0,
         "avg_confidence": 1.0,
-        "avg_kw_hit_rate": 0.75
+        "avg_kw_hit_rate": 1.0
       },
       "Python基础": {
         "count": 6,
         "total_confidence": 6.0,
-        "total_kw_rate": 5.75,
+        "total_kw_rate": 5.5,
         "avg_confidence": 1.0,
-        "avg_kw_hit_rate": 0.958
+        "avg_kw_hit_rate": 0.917
       },
       "Python进阶": {
         "count": 3,
-        "total_confidence": 3.0,
-        "total_kw_rate": 2.75,
-        "avg_confidence": 1.0,
-        "avg_kw_hit_rate": 0.917
+        "total_confidence": 2.9,
+        "total_kw_rate": 3.0,
+        "avg_confidence": 0.967,
+        "avg_kw_hit_rate": 1.0
       },
       "Python实践": {
         "count": 4,
         "total_confidence": 4.0,
-        "total_kw_rate": 4.0,
+        "total_kw_rate": 3.75,
         "avg_confidence": 1.0,
-        "avg_kw_hit_rate": 1.0
+        "avg_kw_hit_rate": 0.938
       },
       "入职与考勤": {
         "count": 4,
-        "total_confidence": 4.0,
-        "total_kw_rate": 3.05,
-        "avg_confidence": 1.0,
-        "avg_kw_hit_rate": 0.762
+        "total_confidence": 3.8,
+        "total_kw_rate": 2.35,
+        "avg_confidence": 0.95,
+        "avg_kw_hit_rate": 0.588
       },
       "薪酬与福利": {
         "count": 4,
         "total_confidence": 4.0,
-        "total_kw_rate": 3.25,
+        "total_kw_rate": 2.55,
         "avg_confidence": 1.0,
-        "avg_kw_hit_rate": 0.812
+        "avg_kw_hit_rate": 0.637
       },
       "培训与晋升": {
         "count": 2,
         "total_confidence": 2.0,
-        "total_kw_rate": 1.75,
+        "total_kw_rate": 1.5,
         "avg_confidence": 1.0,
-        "avg_kw_hit_rate": 0.875
+        "avg_kw_hit_rate": 0.75
       },
       "行为规范": {
         "count": 2,
@@ -83,23 +83,23 @@
       "产品规格": {
         "count": 4,
         "total_confidence": 4.0,
-        "total_kw_rate": 3.0,
+        "total_kw_rate": 3.25,
         "avg_confidence": 1.0,
-        "avg_kw_hit_rate": 0.75
+        "avg_kw_hit_rate": 0.812
       },
       "使用指南": {
         "count": 2,
         "total_confidence": 2.0,
-        "total_kw_rate": 1.55,
+        "total_kw_rate": 1.75,
         "avg_confidence": 1.0,
-        "avg_kw_hit_rate": 0.775
+        "avg_kw_hit_rate": 0.875
       },
       "售后政策": {
         "count": 2,
-        "total_confidence": 2.0,
-        "total_kw_rate": 2.0,
-        "avg_confidence": 1.0,
-        "avg_kw_hit_rate": 1.0
+        "total_confidence": 1.8,
+        "total_kw_rate": 1.6,
+        "avg_confidence": 0.9,
+        "avg_kw_hit_rate": 0.8
       },
       "故障排查": {
         "count": 1,
@@ -118,11 +118,11 @@
     },
     "overall": {
       "source_recall": "50/50 (100.0%)",
-      "avg_keyword_hit_rate": "90.8%",
-      "avg_confidence": 1.0,
+      "avg_keyword_hit_rate": "87.1%",
+      "avg_confidence": 0.982,
       "rag_used": "50/50 (100%)",
-      "total_time_seconds": 351.0,
-      "avg_time_per_question": 7.02
+      "total_time_seconds": 1005.2,
+      "avg_time_per_question": 20.1
     }
   },
   "results": [
@@ -130,29 +130,19 @@
       "id": "Q01",
       "question": "什么是RAG？它解决什么问题？",
       "category": "RAG基础",
-      "answer": "RAG（Retrieval-Augmented Generation，检索增强生成）是一种将外部知识检索与大语言模型（LLM）生成能力相结合的技术框架。\n\n### RAG 解决的问题：\n传统大语言模型存在以下三大局限性，而 RAG 正是为应对这些问题而设计：\n\n1. **知识时效性受限**：LLM 的知识来源于训练数据，无法获取训练截止之后的新信息；\n2. **特定领域知识不足**：在专业或细分领域中，通用模型可能缺乏足够深度的知识；\n3. **容易产生“幻觉”**：模型可能编造看似合理但实际错误或不存在的事实。\n\n### RAG 的核心思想：\n在生成回答前，先从外部知识库中检索与用户问题相关的信息，并将这些检索到的文档片段作为上下文输入给大模型，从而引导其生成更准确、可靠、基于事实的回答。",
+      "answer": "检索增强生成（RAG，Retrieval-Augmented Generation）是一种将外部知识检索与大语言模型生成能力结合起来的技术框架。它在模型生成回答之前，先从外部知识库中检索相关信息，再把检索到的文档片段作为上下文提供给大模型，从而提升回答的准确性和可靠性。\n\n它主要解决传统大语言模型的三类问题：\n\n1. **知识时效性不足**  \n   大模型的知识来自训练数据，无法自动获取训练之后的最新信息。RAG 可以通过检索最新的外部知识库来补充新信息。\n\n2. **特定领域知识不足**  \n   通用大模型在某些细分行业或专业领域中可能缺乏足够知识。RAG 可以接入领域文档、产品资料、政策法规等外部知识，提高专业问答能力。\n\n3. **幻觉问题**  \n   大模型有时会编造不存在的事实。RAG 通过让模型基于检索到的真实文档内容生成回答，可以降低幻觉率，提高结果可信度。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "RAG技术介绍.md",
           "index": 1
-        },
-        {
-          "source": "RAG技术介绍.md",
-          "index": 2
-        },
-        {
-          "source": "RAG技术介绍.md",
-          "index": 3
         }
       ],
       "source_check": {
         "match": true,
         "expected": "RAG技术介绍.md",
         "found_sources": [
-          "RAG技术介绍.md",
-          "RAG技术介绍.md",
           "RAG技术介绍.md"
         ]
       },
@@ -167,45 +157,25 @@
           "时效性": true
         }
       },
-      "time_seconds": 16.47
+      "time_seconds": 30.09
     },
     {
       "id": "Q02",
       "question": "RAG系统的工作流程分为哪两个阶段？",
       "category": "RAG基础",
-      "answer": "RAG系统的工作流程分为两个主要阶段：\n\n1. **离线索引阶段**：对文档进行预处理、分块，并使用嵌入模型将文本块转换为向量，存储到向量数据库中。  \n2. **在线检索与生成阶段**：接收用户问题，将其向量化后在向量数据库中检索相关文档块，经过重排序等后处理，将结果与问题组合成提示词，送入大语言模型生成最终回答。",
+      "answer": "RAG 系统的工作流程包括两个阶段：\n\n1. **离线索引阶段**：对文档进行预处理、分块，并用嵌入模型转换为向量后存入向量数据库。  \n2. **在线检索与生成阶段**：将用户问题转换为向量，在向量数据库中检索相关文档块，再交给大语言模型生成回答。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "RAG技术介绍.md",
           "index": 1
-        },
-        {
-          "source": "RAG技术介绍.md",
-          "index": 2
-        },
-        {
-          "source": "RAG技术介绍.md",
-          "index": 3
-        },
-        {
-          "source": "RAG技术介绍.md",
-          "index": 4
-        },
-        {
-          "source": "RAG技术介绍.md",
-          "index": 5
         }
       ],
       "source_check": {
         "match": true,
         "expected": "RAG技术介绍.md",
         "found_sources": [
-          "RAG技术介绍.md",
-          "RAG技术介绍.md",
-          "RAG技术介绍.md",
-          "RAG技术介绍.md",
           "RAG技术介绍.md"
         ]
       },
@@ -219,30 +189,25 @@
           "生成": true
         }
       },
-      "time_seconds": 7.27
+      "time_seconds": 18.7
     },
     {
       "id": "Q03",
       "question": "文本分块时为什么要设置重叠？",
       "category": "RAG技术",
-      "answer": "文本分块时设置重叠（Overlap）的主要目的是**避免在块边界处切断重要的语义单元**，从而保留上下文的完整性。\n\n具体来说：\n\n- 如果文档被机械地切分成互不重叠的块，一个完整的句子、段落或关键信息可能恰好被从中间切断，导致单个文本块缺乏完整语义。\n- 通过设置重叠（通常为块大小的 10% 到 20%），相邻块之间会共享一部分内容，使得即使某个关键信息跨越了块边界，也能在至少一个块中保持完整。\n- 这有助于提升后续检索阶段的相关性——当用户查询涉及该关键信息时，包含完整语义的块更可能被准确召回。\n\n因此，重叠是一种平衡信息完整性与冗余度的有效策略。",
+      "answer": "文本分块时设置重叠（overlap）的主要原因是：**避免在块边界处切断重要的语义单元**。\n\n通过将相邻文本块之间保留一定重叠内容，可以减少因切分位置不当导致的上下文断裂，从而更好地保持语义完整性。通常重叠大小设置为块大小的 **10% 到 20%**。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "RAG技术介绍.md",
           "index": 1
-        },
-        {
-          "source": "RAG技术介绍.md",
-          "index": 2
         }
       ],
       "source_check": {
         "match": true,
         "expected": "RAG技术介绍.md",
         "found_sources": [
-          "RAG技术介绍.md",
           "RAG技术介绍.md"
         ]
       },
@@ -257,13 +222,13 @@
           "边界": true
         }
       },
-      "time_seconds": 7.07
+      "time_seconds": 16.42
     },
     {
       "id": "Q04",
       "question": "推荐的文本分块大小是多少？为什么？",
       "category": "RAG技术",
-      "answer": "推荐的文本分块大小是 **400 到 600 token**。\n\n**原因如下：**\n\n- **块太大**：会导致信息密度过低，引入过多无关内容，从而降低检索精度；\n- **块太小**：会造成信息碎片化，丢失必要的上下文，影响大语言模型对语义的理解和回答质量。\n\n因此，400–600 token 被视为在保留足够上下文与维持高检索精度之间取得平衡的通用基线。此外，分块时通常采用**递归字符分割器**（RecursiveCharacterTextSplitter），按照段落、换行、句号、空格的优先级进行切割，以确保分块边界落在自然语义单元的分界处，进一步提升效果。",
+      "answer": "推荐的分块大小：**400 到 600 token** 作为通用基线。\n\n这样设置的原因：\n\n- **块太大**：信息密度会降低，导致检索精度下降。\n- **块太小**：信息会变得碎片化，容易失去上下文。\n- 因此，**400 到 600 token** 能在“保留足够上下文”和“保持检索精度”之间取得较好平衡。\n\n另外，分块时通常还会设置 **10% 到 20% 的重叠**，以避免在块边界处切断重要的语义单元。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -290,30 +255,25 @@
           "分块大小": true
         }
       },
-      "time_seconds": 6.74
+      "time_seconds": 18.93
     },
     {
       "id": "Q05",
       "question": "RecursiveCharacterTextSplitter是怎么切割文本的？",
       "category": "RAG技术",
-      "answer": "RecursiveCharacterTextSplitter（递归字符文本分割器）按照**优先级顺序**依次尝试使用一组分隔符对文本进行切割，以确保文本块的边界尽可能落在自然语义单元的分界处。\n\n其典型的分隔符优先级顺序为：\n\n1. **段落分隔（如 \"\\n\\n\"）**  \n2. **换行符（如 \"\\n\"）**  \n3. **句号、问号、感叹号等句子结束标点（如 \".\"、\"?\"、\"!\"）**  \n4. **空格（\" \"）**  \n5. **字符级别（作为最后手段）**\n\n具体工作流程如下：\n\n- 首先尝试用最高优先级的分隔符（如段落分隔）将文本切分成不超过目标块大小（例如 400–600 token）的块；\n- 如果某一段仍超过最大块大小，则退而使用下一个优先级的分隔符（如换行符）继续切分；\n- 依此类推，直到文本被成功分割成符合大小限制的块；\n- 同时，通常会设置**块之间的重叠（Overlap）**（如块大小的 10%–20%），以避免切断关键上下文。\n\n这种方式兼顾了**语义完整性**和**长度控制**，是当前 RAG 系统中推荐的文本分块策略。",
+      "answer": "RecursiveCharacterTextSplitter 会按优先级顺序递归地分割文本：先按段落分割，如果仍需要更小的块，再按换行分割，然后按句号分割，最后按空格分割。\n\n这样做的目的是尽量让分块边界落在自然语义单元的分界处，避免把完整语义切断。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "RAG技术介绍.md",
           "index": 1
-        },
-        {
-          "source": "RAG技术介绍.md",
-          "index": 2
         }
       ],
       "source_check": {
         "match": true,
         "expected": "RAG技术介绍.md",
         "found_sources": [
-          "RAG技术介绍.md",
           "RAG技术介绍.md"
         ]
       },
@@ -328,30 +288,25 @@
           "优先级": true
         }
       },
-      "time_seconds": 9.03
+      "time_seconds": 16.39
     },
     {
       "id": "Q06",
       "question": "什么是混合检索？为什么比单一检索更好？",
       "category": "RAG技术",
-      "answer": "**混合检索**是指在 RAG（Retrieval-Augmented Generation）系统中，**同时使用向量检索（语义匹配）和 BM25 关键词检索**，并通过融合算法（如 RRF，Reciprocal Rank Fusion）将两者的结果合并，以提升整体检索质量。\n\n### 为什么混合检索比单一检索更好？\n\n1. **互补优势**：\n   - **向量检索**擅长理解语义，能找出“意思相近”但用词不同的内容，适合处理自然语言的多样性。\n   - **BM25 检索**基于 TF-IDF，对**专有名词、编号、精确关键词**非常敏感，在这些场景下表现更优。\n\n2. **提升召回率与准确率**：\n   - 单一的向量检索可能漏掉包含关键术语但语义表达差异较大的文档；\n   - 单一的 BM25 可能无法理解同义或 paraphrased 表达。\n   - 混合检索结合两者，既覆盖语义相似性，又保留关键词精确性。\n\n3. **实际效果优化**：\n   - 实践中通常设置向量检索权重为 0.6，BM25 权重为 0.4，通过 RRF 融合排序，能显著提高 Top-K 结果的相关性。\n\n因此，混合检索通过融合不同检索机制的优势，在多样化的用户查询下表现更鲁棒、更全面，是现代 RAG 系统的标准优化手段。",
-      "confidence": 1.0,
+      "answer": "混合检索是指在 RAG 系统中同时使用**向量检索**和**关键词检索**，并将两种检索结果进行融合的检索方式。\n\n根据上下文，混合检索通常包括：\n\n- **向量检索**：基于语义匹配，擅长找到“意思相近”的内容。\n- **BM25 关键词检索**：基于 TF-IDF 算法，擅长匹配专有名词、编号等精确内容。\n- **融合方式**：通常通过 **RRF（Reciprocal Rank Fusion）算法**融合两种结果，常见权重设置为向量检索 0.6，BM25 检索 0.4。\n\n与单一检索相比，混合检索的优势是：\n\n1. **兼顾语义理解和精确匹配**  \n   向量检索能理解语义，但可能对专有名词或精确词匹配不够敏感；BM25 能补足这一点。\n\n2. **提高检索质量**  \n   通过同时利用语义匹配和关键词匹配，可以更全面地找到相关文档。\n\n3. **降低漏检风险**  \n   单一检索可能因为表达不同、专有名词、编号等原因检索不到内容，混合检索可以减少这种情况。",
+      "confidence": 0.8,
       "rag_used": true,
       "sources": [
         {
           "source": "RAG技术介绍.md",
           "index": 1
-        },
-        {
-          "source": "RAG技术介绍.md",
-          "index": 2
         }
       ],
       "source_check": {
         "match": true,
         "expected": "RAG技术介绍.md",
         "found_sources": [
-          "RAG技术介绍.md",
           "RAG技术介绍.md"
         ]
       },
@@ -366,30 +321,25 @@
           "RRF": true
         }
       },
-      "time_seconds": 8.83
+      "time_seconds": 26.73
     },
     {
       "id": "Q07",
       "question": "RRF算法在混合检索中起什么作用？权重怎么分配？",
       "category": "RAG技术",
-      "answer": "RRF（Reciprocal Rank Fusion，倒数排名融合）算法在RAG的混合检索中用于**融合向量检索（语义匹配）和BM25检索（关键词匹配）的结果**，从而结合两者的优势，提升整体检索质量。\n\n具体作用如下：\n\n- **统一排序**：RRF将两种检索方式返回的文档列表，根据各自的排名进行重新打分和融合，生成一个综合排序结果。\n- **互补优势**：向量检索擅长捕捉语义相似性，但对专有名词或精确术语不够敏感；BM25则对关键词、编号等精确匹配更有效。RRF通过融合，使系统既能理解语义，又能准确召回关键术语相关内容。\n\n关于权重分配：\n\n- 虽然标准RRF公式本身**不显式包含权重参数**（其基本形式为：  \n  \\(\\text{RRF score} = \\sum \\frac{1}{k + \\text{rank}}\\)，其中 \\(k\\) 通常设为60），  \n  但在实际工程实践中，常对两种检索结果**分别加权后再融合**。\n- 根据上下文信息，**通常设定向量检索权重为0.6，BM25权重为0.4**，以反映语义匹配在多数场景下的更高重要性。\n\n因此，RRF在混合检索中起到了**有效整合语义与关键词信号、提升召回相关性**的关键作用，而权重分配则依据经验设定为**向量检索0.6、BM25为0.4**。",
+      "answer": "RRF（Reciprocal Rank Fusion，倒数排名融合）在混合检索中的作用是：**融合向量检索和 BM25 关键词检索的结果**，从而同时利用两种检索方式的优势，提高最终检索质量。\n\n具体来说：\n\n1. **向量检索**擅长语义匹配，可以找到“意思相近”的内容；\n2. **BM25 检索**擅长关键词匹配，对专有名词、编号、精确词匹配更有效；\n3. **RRF 算法**将这两种检索结果进行融合，得到更可靠的最终排序结果。\n\n关于权重分配，根据上下文中的说明，通常设置为：\n\n- **向量检索权重：0.6**\n- **BM25 检索权重：0.4**\n\n也就是说，混合检索通常更偏向语义匹配，但同时保留关键词匹配的能力。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "RAG技术介绍.md",
           "index": 1
-        },
-        {
-          "source": "RAG技术介绍.md",
-          "index": 2
         }
       ],
       "source_check": {
         "match": true,
         "expected": "RAG技术介绍.md",
         "found_sources": [
-          "RAG技术介绍.md",
           "RAG技术介绍.md"
         ]
       },
@@ -405,30 +355,58 @@
           "权重": true
         }
       },
-      "time_seconds": 9.91
+      "time_seconds": 21.4
     },
     {
       "id": "Q08",
       "question": "重排序模型的作用是什么？",
       "category": "RAG技术",
-      "answer": "重排序模型的作用是对检索阶段返回的 Top-K 文档进行更精细的相关性打分，从而过滤掉低分、不相关的文档，提升最终生成答案的质量。\n\n具体来说：\n\n- 它会对每个**查询-文档对**进行重新评分，判断其与用户问题的实际相关性；\n- 常用的模型包括 **BGE-Reranker** 和 **Cohere Rerank**；\n- 采用 **Cross-Encoder 架构** 的重排序模型虽然推理速度较慢，但精度更高，适合在最后阶段对少量候选文档进行精排；\n- 经过重排序后，通常只有 **3–5 个最相关的文档块** 会进入最终的回答生成阶段。",
+      "answer": "重排序模型的主要作用是：对检索阶段返回的候选文档进行更精细的相关性排序，筛选出更适合用于回答的文档。\n\n具体来说：\n\n1. **二次评估相关性**  \n   检索阶段返回的 Top-K 文档不一定都与问题高度相关，重排序模型会对每个“查询-文档”组合重新打分。\n\n2. **过滤低相关文档**  \n   通过更精细的打分，剔除相关性较低的文档，只保留更可靠的内容。\n\n3. **提升最终回答质量**  \n   经过重排序后，进入大模型生成回答的文档通常更相关，有助于降低幻觉、提高答案准确性。\n\n4. **适合最后阶段精排**  \n   例如 Cross-Encoder 类型的重排序模型精度较高，但速度相对较慢，因此通常用于对少量候选文档进行最终排序。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "RAG技术介绍.md",
           "index": 1
-        },
-        {
-          "source": "RAG技术介绍.md",
-          "index": 2
         }
       ],
       "source_check": {
         "match": true,
         "expected": "RAG技术介绍.md",
         "found_sources": [
-          "RAG技术介绍.md",
+          "RAG技术介绍.md"
+        ]
+      },
+      "keyword_check": {
+        "hit_count": 2,
+        "total": 4,
+        "hit_rate": 0.5,
+        "details": {
+          "重排序": true,
+          "Reranker": false,
+          "Cross-Encoder": true,
+          "BGE": false
+        }
+      },
+      "time_seconds": 22.8
+    },
+    {
+      "id": "Q09",
+      "question": "查询改写在什么场景下需要用到？",
+      "category": "RAG优化",
+      "answer": "查询改写技术主要适用于**多轮对话场景**。\n\n具体来说，当用户在对话中使用**代词**或**省略说法**时，例如：\n\n- “它有什么特点？”\n- “这个怎么用？”\n- “那它的优势是什么？”\n\n系统需要结合历史对话，把当前问题改写为完整、明确的查询，例如：\n\n- “LangGraph 有什么特点？”\n\n这样向量检索才能准确匹配到相关文档。否则，原始查询过于简短或包含指代词，可能无法检索到有效内容。",
+      "confidence": 1.0,
+      "rag_used": true,
+      "sources": [
+        {
+          "source": "RAG技术介绍.md",
+          "index": 1
+        }
+      ],
+      "source_check": {
+        "match": true,
+        "expected": "RAG技术介绍.md",
+        "found_sources": [
           "RAG技术介绍.md"
         ]
       },
@@ -437,74 +415,31 @@
         "total": 4,
         "hit_rate": 1.0,
         "details": {
-          "重排序": true,
-          "Reranker": true,
-          "Cross-Encoder": true,
-          "BGE": true
-        }
-      },
-      "time_seconds": 6.96
-    },
-    {
-      "id": "Q09",
-      "question": "查询改写在什么场景下需要用到？",
-      "category": "RAG优化",
-      "answer": "查询改写主要在**多轮对话场景**下需要用到。  \n\n具体来说，当用户使用**代词**（如“它”、“这个”）或**省略说法**（如“有什么特点？”）时，原始查询缺乏足够的上下文信息，直接用于向量检索会导致无法匹配到相关文档。此时，需要结合**历史对话内容**，将当前查询改写为语义完整、自包含的形式（例如将“它有什么特点？”改写为“LangGraph 有什么特点？”），以提升检索的准确性和相关性。",
-      "confidence": 1.0,
-      "rag_used": true,
-      "sources": [
-        {
-          "source": "RAG技术介绍.md",
-          "index": 1
-        }
-      ],
-      "source_check": {
-        "match": true,
-        "expected": "RAG技术介绍.md",
-        "found_sources": [
-          "RAG技术介绍.md"
-        ]
-      },
-      "keyword_check": {
-        "hit_count": 3,
-        "total": 4,
-        "hit_rate": 0.75,
-        "details": {
           "查询改写": true,
-          "指代": false,
+          "指代": true,
           "多轮": true,
           "代词": true
         }
       },
-      "time_seconds": 6.45
+      "time_seconds": 18.75
     },
     {
       "id": "Q10",
       "question": "RAG和模型微调有什么区别？各适合什么场景？",
       "category": "RAG基础",
-      "answer": "RAG（Retrieval-Augmented Generation）和模型微调（Fine-tuning）是两种不同的知识增强方式，主要区别如下：\n\n### 一、核心区别\n\n- **RAG**：在推理阶段动态检索外部知识库中的相关信息，并将这些信息作为上下文输入给大模型生成答案。**不修改模型参数**，知识更新只需增删文档。\n- **微调**：通过在特定领域数据上训练，**更新模型内部参数**，使其“学会”该领域的知识、术语或回答风格。\n\n### 二、各自优势\n\n- **RAG 的优点**：\n  - 知识更新便捷（只需更新文档）\n  - 可提供精确、可追溯的答案\n  - 适合处理最新或频繁变动的信息\n\n- **微调的优点**：\n  - 推理时无额外检索开销，响应更快\n  - 能让模型深度掌握领域逻辑、风格或复杂模式\n  - 不依赖外部知识库的实时可用性\n\n### 三、适用场景\n\n- **RAG 更适合**：\n  - 知识频繁更新的场景（如政策法规、产品手册、新闻资讯）\n  - 需要高准确性和可解释性的问答系统\n  - 企业已有结构化/半结构化文档库\n\n- **微调更适合**：\n  - 需要模型具备特定领域深层理解能力（如医疗诊断、法律推理）\n  - 回答风格或格式有严格要求（如客服话术、报告生成）\n  - 对推理延迟敏感、无法承受检索开销的场景\n\n### 四、实际应用建议\n\n许多企业采用 **RAG + 微调的混合方案**：\n- 用微调让模型掌握领域基础语言和逻辑；\n- 用 RAG 提供最新、最精确的事实依据。\n\n这种方式兼顾了模型的通用理解能力和知识的时效性与准确性。",
-      "confidence": 1.0,
+      "answer": "检索增强生成（RAG）与模型微调（Fine-tuning）是两种不同的知识增强方式，主要区别如下：\n\n| 对比维度 | RAG（检索增强生成） | 模型微调 |\n|---|---|---|\n| 核心方式 | 在推理阶段动态检索外部知识，并将检索到的文档片段作为上下文提供给大模型生成回答 | 通过训练数据更新模型参数，让模型“学会”特定领域的知识和行为模式 |\n| 知识更新 | 更新方便，增加或修改文档即可，不需要重新训练模型 | 需要重新训练或更新模型参数 |\n| 推理开销 | 推理时需要检索外部知识库，可能增加一定流程开销 | 一次训练后可反复使用，推理速度不增加额外开销 |\n| 主要优势 | 能提供最新、更精确的参考信息，降低模型编造内容的风险 | 能让模型深度理解特定领域规律、风格或任务模式 |\n\n适用场景：\n\n1. **RAG 更适合知识频繁更新的场景**  \n   例如政策法规、产品文档、企业内部知识库等。因为这些内容变化较快，通过更新文档即可让系统获取最新信息，不需要重新训练模型。\n\n2. **模型微调更适合需要模型深度理解特定领域规律或风格的场景**  \n   例如让模型掌握某个行业的专业表达方式、固定任务模式或特定业务风格。\n\n3. **企业级系统中常采用 RAG + 微调的混合方案**  \n   用微调让模型掌握领域基础能力，再用 RAG 提供最新、最精确的参考信息，从而兼顾稳定性、专业性和时效性。",
+      "confidence": 0.8,
       "rag_used": true,
       "sources": [
         {
           "source": "RAG技术介绍.md",
           "index": 1
-        },
-        {
-          "source": "RAG技术介绍.md",
-          "index": 2
-        },
-        {
-          "source": "RAG技术介绍.md",
-          "index": 3
         }
       ],
       "source_check": {
         "match": true,
         "expected": "RAG技术介绍.md",
         "found_sources": [
-          "RAG技术介绍.md",
-          "RAG技术介绍.md",
           "RAG技术介绍.md"
         ]
       },
@@ -519,13 +454,13 @@
           "参数": true
         }
       },
-      "time_seconds": 12.2
+      "time_seconds": 38.04
     },
     {
       "id": "Q11",
       "question": "ChromaDB和Milvus各适合什么场景？",
       "category": "RAG技术",
-      "answer": "ChromaDB 和 Milvus 适用于不同规模和需求的场景：\n\n- **ChromaDB**：作为轻量级嵌入式向量数据库，适合**开发阶段**和**小规模部署**。它支持本地持久化存储和基于元数据的过滤，易于集成和快速上手，适用于原型验证或中小规模应用。\n\n- **Milvus**：是面向**生产环境**的分布式向量数据库，适合**大规模、高并发**的场景。它支持十亿级向量的高效检索，并提供 GPU 加速能力，适用于对性能和可扩展性要求较高的企业级应用。\n\n两者在核心检索 API 上保持一致，从 ChromaDB 迁移到 Milvus 主要涉及部署架构的调整，而非代码逻辑的大改。",
+      "answer": "根据上下文信息：\n\n- **ChromaDB**：适合作为**轻量级嵌入式向量数据库**使用，主要用于**开发阶段和小规模部署场景**。它支持**本地持久化**和**元数据过滤**，因此比较适合快速原型验证、本地实验或小数据量应用。\n\n- **Milvus**：适合**生产环境**使用，是面向大规模应用的**分布式向量数据库**。它支持**十亿级向量检索**和 **GPU 加速**，更适合对性能、规模和稳定性要求较高的场景。\n\n简单来说：**开发和小规模用 ChromaDB，生产环境和大规模检索用 Milvus。**",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -552,45 +487,25 @@
           "分布式": true
         }
       },
-      "time_seconds": 7.05
+      "time_seconds": 26.69
     },
     {
       "id": "Q12",
       "question": "RAG系统的检索后处理包括哪些步骤？",
       "category": "RAG技术",
-      "answer": "RAG系统的检索后处理主要包括两个步骤：\n\n1. **后置过滤（Post-filtering）**：利用向量相似度分数剔除明显不相关的文档，初步筛选出质量较高的候选文档。\n\n2. **重排序（Reranking）**：对经过过滤后的文档进行更精细的相关性打分和排序。通常使用如 BGE-Reranker、Cohere Rerank 等基于 Cross-Encoder 架构的重排序模型，以提高最终用于生成回答的文档的相关性。\n\n经过这两层处理后，通常只有 3–5 个最相关的文档块会进入最终的回答生成阶段。",
+      "answer": "检索增强生成（RAG）系统的检索后处理主要包括两个步骤：\n\n1. **后置过滤**  \n   利用向量相似度分数，剔除明显不相关的文档块。\n\n2. **重排序（Reranking）**  \n   对过滤后剩余的文档块进行更精细的打分和排序，以选出最相关的内容。\n\n经过这两层处理后，通常只会保留 **3～5 个最相关的文档块**，用于最终的提示词构建和大模型回答生成。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "RAG技术介绍.md",
           "index": 1
-        },
-        {
-          "source": "RAG技术介绍.md",
-          "index": 2
-        },
-        {
-          "source": "RAG技术介绍.md",
-          "index": 3
-        },
-        {
-          "source": "RAG技术介绍.md",
-          "index": 4
-        },
-        {
-          "source": "RAG技术介绍.md",
-          "index": 5
         }
       ],
       "source_check": {
         "match": true,
         "expected": "RAG技术介绍.md",
         "found_sources": [
-          "RAG技术介绍.md",
-          "RAG技术介绍.md",
-          "RAG技术介绍.md",
-          "RAG技术介绍.md",
           "RAG技术介绍.md"
         ]
       },
@@ -605,51 +520,46 @@
           "5": true
         }
       },
-      "time_seconds": 5.94
+      "time_seconds": 16.25
     },
     {
       "id": "Q13",
       "question": "RAG系统需要什么样的提示词？",
       "category": "RAG实践",
-      "answer": "RAG 系统的提示词需要满足以下关键要求：\n\n1. **明确指示仅使用提供的上下文信息回答问题**：这可以约束大语言模型不要依赖其内部知识，从而减少“幻觉”（即编造答案）的风险。\n\n2. **要求模型在上下文不足以回答时诚实说明**：例如，提示词应包含类似“如果提供的信息不足以回答该问题，请明确说明”的指令，以确保回答的可靠性。\n\n这样的提示词设计能显著降低模型生成错误或虚构内容的概率，提升 RAG 系统整体的准确性和可信度。",
+      "answer": "根据知识库中的信息，RAG 系统应使用以下类型的提示词：\n\n1. **限定回答范围的提示词**  \n   明确告诉大模型：**只使用提供的上下文信息回答问题**。  \n   例如：“请仅根据以下上下文回答用户问题，不要使用上下文之外的信息。”\n\n2. **上下文不足时的诚实说明提示词**  \n   明确告诉大模型：如果提供的上下文不足以回答问题，应诚实说明，而不是编造答案。  \n   例如：“如果上下文中没有足够信息，请说明无法回答或知识库中暂无相关内容。”\n\n3. **提示词模板（Prompt Template）**  \n   RAG 系统通常会将以下内容组合成提示词模板，再发送给大语言模型：  \n   - 用户问题  \n   - 检索到的相关文档块  \n   - 回答规则和限制条件  \n\n这些提示词可以帮助降低大模型的“幻觉”风险，提高回答的准确性和可靠性。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "RAG技术介绍.md",
           "index": 1
-        },
-        {
-          "source": "RAG技术介绍.md",
-          "index": 2
         }
       ],
       "source_check": {
         "match": true,
         "expected": "RAG技术介绍.md",
         "found_sources": [
-          "RAG技术介绍.md",
           "RAG技术介绍.md"
         ]
       },
       "keyword_check": {
-        "hit_count": 3,
+        "hit_count": 4,
         "total": 4,
-        "hit_rate": 0.75,
+        "hit_rate": 1.0,
         "details": {
           "提示词": true,
           "上下文": true,
           "诚实说明": true,
-          "prompt": false
+          "prompt": true
         }
       },
-      "time_seconds": 6.66
+      "time_seconds": 26.08
     },
     {
       "id": "Q14",
       "question": "Python中async和await关键字是做什么的？",
       "category": "Python基础",
-      "answer": "在 Python 中，async 和 await 是用于异步编程的关键字：\n\n- **async def** 用于定义一个协程函数。调用这样的函数不会立即执行其中的代码，而是返回一个**协程对象**。\n- **await** 用于在协程函数内部“等待”另一个协程或可等待对象（如任务、Future）完成。它会暂停当前协程的执行，直到被 await 的对象返回结果，而不会阻塞整个程序。\n\n需要注意的是：\n- **await 只能在 async def 定义的函数中使用**，普通函数中不能使用 await。\n- 协程必须通过事件循环（如 asyncio.run()）或被其他协程 await 才能真正执行。\n\n例如：\n\n```python\nasync def fetch_data(url):\n    async with httpx.AsyncClient() as client:\n        response = await client.get(url)  # 异步等待 HTTP 请求完成\n        return response.json()\n\nasync def main():\n    data = await fetch_data(\"https://api.example.com\")\n    print(data)\n\nasyncio.run(main())  # 启动事件循环并运行主协程\n```\n\n这段代码展示了如何使用 async/await 实现非阻塞的网络请求。",
+      "answer": "在 Python 中，`async` 和 `await` 是用于异步编程的两个核心关键字。\n\n- `async def`：用于定义一个异步函数，也叫协程函数。调用该函数会返回一个协程对象，而不是立即执行函数体。\n- `await`：用于等待一个异步操作完成，通常用在 `async def` 定义的函数内部。\n\n根据上下文，主要规则是：\n\n1. 用 `async def` 声明的函数会返回一个协程对象。\n2. 这个协程对象必须通过 `await` 关键字或事件循环来执行。\n3. 普通函数中不能使用 `await`。\n4. `await` 只能在 `async def` 声明的函数中使用。\n\n示例：\n\n```python\nasync def fetch_data(url):\n    async with httpx.AsyncClient() as client:\n        response = await client.get(url)\n        return response.json()\n\nasync def main():\n    data = await fetch_data(\"https://api.example.com\")\n    print(data)\n\nasyncio.run(main())\n```\n\n简单来说，`async` 用来定义异步函数，`await` 用来等待异步操作的结果。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -666,40 +576,35 @@
         ]
       },
       "keyword_check": {
-        "hit_count": 4,
+        "hit_count": 3,
         "total": 4,
-        "hit_rate": 1.0,
+        "hit_rate": 0.75,
         "details": {
           "协程": true,
           "await": true,
           "async": true,
-          "暂停": true
+          "暂停": false
         }
       },
-      "time_seconds": 8.61
+      "time_seconds": 18.56
     },
     {
       "id": "Q15",
       "question": "异步编程和多线程有什么区别？",
       "category": "Python基础",
-      "answer": "异步编程和多线程都是处理并发的技术，但它们的工作方式有本质区别：\n\n- **多线程**：\n  - 依赖操作系统的调度，在多个线程之间切换。\n  - 每个线程拥有独立的调用栈。\n  - 线程切换由操作系统控制，存在上下文切换开销。\n  - 多线程共享内存，容易引发锁竞争和数据竞争问题。\n  - 适合计算密集型任务（尤其是配合多核 CPU）。\n\n- **异步编程**：\n  - 在单线程内通过事件循环管理多个协程。\n  - 协程的切换由程序主动控制（通常在 `await` 处让出控制权）。\n  - 没有线程切换的开销，也没有锁竞争问题。\n  - 特别适合 I/O 密集型任务（如网络请求、文件读写）。\n  - 对于计算密集型任务没有优势，此时应考虑多进程或将任务交给线程池。\n\n总结：异步编程更轻量、高效于 I/O 场景；多线程更适合需要并行计算的场景，但需处理并发安全问题。",
+      "answer": "异步编程与多线程的主要区别如下：\n\n1. **工作方式不同**\n   - **多线程**：由操作系统在多个线程之间切换，每个线程有独立的调用栈，切换由操作系统控制。\n   - **异步编程**：在单线程内通过事件循环管理多个协程，切换由程序自己控制，通常在 `await` 处主动让出控制权。\n\n2. **控制权切换方式不同**\n   - 多线程的切换是操作系统调度决定的。\n   - 异步编程的切换是程序主动暂停和恢复的。\n\n3. **性能开销不同**\n   - 多线程存在线程切换开销，也可能出现锁竞争问题。\n   - 异步编程没有线程切换开销，也通常没有锁竞争问题。\n\n4. **适用场景不同**\n   - 异步编程更适合 **I/O 密集型任务**，例如网络请求、数据库查询、文件读写等。\n   - 对于 **计算密集型任务**，异步编程没有明显优势，更适合使用多进程或将计算任务交给线程池处理。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "Python异步编程快速入门.txt",
           "index": 1
-        },
-        {
-          "source": "Python异步编程快速入门.txt",
-          "index": 2
         }
       ],
       "source_check": {
         "match": true,
         "expected": "Python异步编程快速入门.txt",
         "found_sources": [
-          "Python异步编程快速入门.txt",
           "Python异步编程快速入门.txt"
         ]
       },
@@ -714,14 +619,14 @@
           "锁": true
         }
       },
-      "time_seconds": 10.03
+      "time_seconds": 19.79
     },
     {
       "id": "Q16",
       "question": "什么是异步生成器？它在什么场景下有用？",
       "category": "Python进阶",
-      "answer": "**异步生成器**是 Python 异步编程中的一种高级特性，通过 `async def` + `yield` 语法定义。它结合了协程的暂停能力和生成器的迭代能力：每产出一个值就暂停一次，等待调用方通过 `async for` 逐个消费。\n\n### 典型应用场景：\n在 **AI 应用开发**中，异步生成器是实现**流式输出**的关键技术。例如，大语言模型（LLM）每生成一个 token，就可以立即通过 `yield` 推送给前端，用户看到的是实时逐字出现的“打字机效果”，而无需等待整个响应生成完毕再一次性显示。\n\n此外，FastAPI 的 `StreamingResponse` 类可以接收一个异步生成器，并将其作为 **SSE（Server-Sent Events）** 流式响应发送给浏览器，适用于需要实时推送数据的 Web 场景。",
-      "confidence": 1.0,
+      "answer": "异步生成器是 Python 异步编程中的一种高级特性，通常通过 `async def + yield` 语法定义。\n\n它结合了：\n\n- 协程的暂停能力\n- 生成器的迭代能力\n\n每通过 `yield` 产出一个值，就会暂停一次，等待调用方通过 `async for` 继续消费下一个值。\n\n适用场景包括：\n\n1. **流式输出**\n   - 例如 AI 大模型生成回答时，每生成一个 token 就通过 `yield` 推送给前端。\n   - 用户可以看到实时逐字出现的“打字机效果”，而不是等待完整回答一次性返回。\n\n2. **SSE 流式响应**\n   - FastAPI 的 `StreamingResponse` 可以接收一个异步生成器，并将其作为 SSE，即 Server-Sent Events，流式响应发送给浏览器。\n\n3. **需要逐步产出异步结果的场景**\n   - 适合数据不是一次性准备好，而是需要边生成、边处理、边返回的场景。",
+      "confidence": 0.9,
       "rag_used": true,
       "sources": [
         {
@@ -747,13 +652,13 @@
           "SSE": true
         }
       },
-      "time_seconds": 7.43
+      "time_seconds": 27.37
     },
     {
       "id": "Q17",
       "question": "FastAPI的StreamingResponse是怎么工作的？",
       "category": "Python进阶",
-      "answer": "FastAPI 的 `StreamingResponse` 是用于实现**流式响应**的核心工具，其工作原理如下：\n\n1. **接收异步生成器**：  \n   `StreamingResponse` 接收一个**异步生成器**（通过 `async def` + `yield` 定义）作为数据源。该生成器每次 `yield` 一个数据块（如一个 token、一行文本等），就会暂停执行，等待下一次被消费。\n\n2. **转换为 SSE 流**：  \n   FastAPI 将这个异步生成器包装成一个 **Server-Sent Events (SSE)** 响应。SSE 是一种基于 HTTP 的单向通信协议，服务器可以持续向客户端推送数据，而无需客户端反复请求。\n\n3. **响应格式**：  \n   SSE 的消息格式简单，由纯文本行组成，例如：\n   ```\n   data: 第一个token\\n\\n\n   data: 第二个token\\n\\n\n   ```\n   每条消息以 `data:` 开头，后跟实际内容，两条消息之间用空行（`\\n\\n`）分隔。\n\n4. **前端消费**：  \n   浏览器通过 `EventSource` API 监听该 SSE 流，每当收到一个 `data:` 块，就触发一个事件，从而实现实时更新（如 LLM 的“打字机效果”）。\n\n总结：`StreamingResponse` 利用异步生成器逐块产出数据，并通过 SSE 协议将这些数据实时推送给前端，避免了等待完整响应后再一次性返回，极大提升了用户体验。",
+      "answer": "根据上下文，FastAPI 中 `StreamingResponse` 的工作原理可以概括为：\n\n1. **接收异步生成器**\n   `StreamingResponse` 接收一个异步生成器作为响应内容来源。该异步生成器通常使用 `async def + yield` 定义。\n\n2. **逐块产出数据**\n   异步生成器每 `yield` 一次，就产出一部分数据，然后暂停执行，等待调用方继续消费。\n\n3. **流式发送给客户端**\n   `StreamingResponse` 会将异步生成器不断产出的内容作为流式响应发送给浏览器或客户端，而不是等全部内容生成完毕后再一次性返回。\n\n4. **适合实现实时输出**\n   在 AI 应用中，这种机制可以实现“打字机效果”：LLM 每生成一个 token，就通过 `yield` 推送给前端，用户可以看到内容实时逐字出现。\n\n5. **可用于 SSE 场景**\n   上下文中提到，`StreamingResponse` 可以将异步生成器作为 SSE（Server-Sent Events）流式响应发送给浏览器。SSE 是一种基于 HTTP 的单向通信协议，其消息格式较简单：事件类型 `event` 和数据 `data` 用纯文本行表示，两条消息之间用空行分隔。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -780,30 +685,25 @@
           "流式": true
         }
       },
-      "time_seconds": 11.72
+      "time_seconds": 35.1
     },
     {
       "id": "Q18",
       "question": "用协程比用多线程好在哪里？",
       "category": "Python基础",
-      "answer": "使用协程（异步编程）相比多线程有以下几个主要优势：\n\n1. **更低的开销**：  \n   协程在单线程内通过事件循环运行，切换由程序在 `await` 处主动控制，没有操作系统级线程切换的上下文开销。\n\n2. **无锁竞争问题**：  \n   因为协程通常运行在同一个线程中，共享状态时不需要复杂的锁机制，避免了死锁、竞态条件等多线程常见问题。\n\n3. **更适合 I/O 密集型任务**：  \n   在等待网络请求、文件读写等 I/O 操作时，协程可以高效地让出控制权，让事件循环处理其他任务，从而提升并发性能。\n\n4. **更高的可扩展性**：  \n   一个线程可以轻松运行成千上万个协程，而创建大量线程会消耗大量内存和系统资源。\n\n> 注意：协程对**计算密集型任务**没有优势。这类任务应使用多进程或将计算交给线程池处理。\n\n综上，在 I/O 密集型场景（如 Web 服务、API 调用）中，协程通常是比多线程更高效、更简洁的选择。",
+      "answer": "根据知识库内容，协程相比多线程的优势主要有：\n\n1. **没有线程切换开销**  \n   多线程的切换由操作系统控制，会有上下文切换成本；协程在单线程内由事件循环调度，切换开销更低。\n\n2. **没有锁竞争问题**  \n   多线程通常需要处理共享资源竞争和加锁问题；协程在单线程内运行，通常不需要复杂的锁机制。\n\n3. **更适合 I/O 密集型任务**  \n   协程适合处理大量网络请求、文件读写、数据库访问等需要等待 I/O 的场景，可以在等待时主动让出控制权，提高并发效率。\n\n不过，对于**计算密集型任务**，协程没有明显优势，更适合使用多进程或将计算任务交给线程池处理。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "Python异步编程快速入门.txt",
           "index": 1
-        },
-        {
-          "source": "Python异步编程快速入门.txt",
-          "index": 2
         }
       ],
       "source_check": {
         "match": true,
         "expected": "Python异步编程快速入门.txt",
         "found_sources": [
-          "Python异步编程快速入门.txt",
           "Python异步编程快速入门.txt"
         ]
       },
@@ -818,13 +718,13 @@
           "开销": true
         }
       },
-      "time_seconds": 8.77
+      "time_seconds": 18.05
     },
     {
       "id": "Q19",
       "question": "httpx库有什么特点？在FastAPI项目中怎么用？",
       "category": "Python实践",
-      "answer": "httpx 是目前 Python 生态中最推荐的异步 HTTP 客户端，具有以下特点：\n\n- 同时支持同步和异步 API；\n- 适用于现代异步 Web 框架（如 FastAPI）；\n- 提供类似 requests 的简洁接口，但增加了对 async/await 的原生支持。\n\n在 FastAPI 项目中，推荐使用 httpx.AsyncClient 进行外部 HTTP 调用。这是因为 FastAPI 基于异步事件循环构建，若使用同步的 requests 库，会在等待 HTTP 响应时阻塞整个线程，影响并发性能；而使用 httpx 的异步客户端可以避免阻塞，充分发挥异步优势。\n\n示例用法如下：\n\n```python\nimport httpx\nfrom fastapi import FastAPI\n\napp = FastAPI()\n\n@app.get(\"/fetch-data\")\nasync def fetch_data():\n    async with httpx.AsyncClient() as client:\n        response = await client.get(\"https://api.example.com/data\")\n        return response.json()\n```",
+      "answer": "根据知识库内容：\n\n**httpx 库的主要特点：**\n\n1. **是目前 Python 生态中最推荐的异步 HTTP 客户端**\n2. **同时支持同步和异步 API**\n\n**在 FastAPI 项目中的使用方式：**\n\n在 FastAPI 项目中，推荐使用 **`httpx.AsyncClient`** 进行外部 HTTP 调用。\n\n原因是：FastAPI 本身基于异步事件循环构建，如果在其中使用同步的 `requests` 库，会在等待 HTTP 响应时阻塞整个线程；而使用 `httpx.AsyncClient` 更符合 FastAPI 的异步模型。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -851,30 +751,25 @@
           "FastAPI": true
         }
       },
-      "time_seconds": 8.93
+      "time_seconds": 24.01
     },
     {
       "id": "Q20",
       "question": "FastAPI中可以用阻塞的同步函数吗？为什么？",
       "category": "Python实践",
-      "answer": "在 FastAPI 中**不建议直接使用阻塞的同步函数**，尤其是在 `async def` 定义的异步路由处理函数中。\n\n### 原因：\nFastAPI 原生支持异步，其异步路由函数运行在同一个事件循环中。如果在异步路由中调用**阻塞的同步函数**（如使用 `requests` 发起 HTTP 请求、执行长时间的文件 I/O 或计算等），会导致**整个事件循环被阻塞**，从而影响其他并发请求的处理，严重降低服务性能和响应能力。\n\n### 正确做法：\n如果必须调用同步函数，应将其包装在 `asyncio.to_thread()` 中，让该函数在**单独的线程中执行**，避免阻塞主线程的事件循环。例如：\n\n```python\nimport asyncio\nimport requests\nfrom fastapi import FastAPI\n\napp = FastAPI()\n\n@app.get(\"/sync-call\")\nasync def sync_call():\n    # 将阻塞调用放到线程池中执行\n    response = await asyncio.to_thread(requests.get, \"https://example.com\")\n    return {\"status\": response.status_code}\n```\n\n### 补充说明：\n- FastAPI 的依赖注入系统（`Depends`）也支持异步依赖。若依赖是异步函数，FastAPI 会自动 await。\n- 对于 I/O 操作，推荐优先使用原生异步库（如用 `httpx.AsyncClient` 替代 `requests`），以充分发挥异步优势。\n\n因此，虽然技术上可以在 FastAPI 中调用同步函数，但**直接在异步上下文中调用阻塞函数会破坏异步并发模型**，应避免这样做。",
+      "answer": "FastAPI **可以使用阻塞式同步函数，但不建议在 `async def` 路由函数中直接调用**。\n\n原因是：  \n`async def` 路由函数会运行在事件循环中。如果在其中调用阻塞式同步函数，这个同步函数会一直占用当前事件循环，导致整个事件循环被阻塞，其他请求或异步任务无法继续执行，从而影响 FastAPI 的并发性能。\n\n如果确实需要调用阻塞式同步函数，推荐把它放到单独线程中执行，例如使用：\n\n```python\nawait asyncio.to_thread(blocking_function)\n```\n\n这样同步函数会在独立线程中运行，不会阻塞 FastAPI 的事件循环。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "Python异步编程快速入门.txt",
           "index": 1
-        },
-        {
-          "source": "Python异步编程快速入门.txt",
-          "index": 2
         }
       ],
       "source_check": {
         "match": true,
         "expected": "Python异步编程快速入门.txt",
         "found_sources": [
-          "Python异步编程快速入门.txt",
           "Python异步编程快速入门.txt"
         ]
       },
@@ -889,13 +784,13 @@
           "线程": true
         }
       },
-      "time_seconds": 9.94
+      "time_seconds": 20.2
     },
     {
       "id": "Q21",
       "question": "aiosqlite是用来做什么的？在哪个框架中被使用？",
       "category": "Python实践",
-      "answer": "aiosqlite 是 SQLite 的异步封装，用于在协程中执行 SQL 查询而不阻塞事件循环。它允许异步地与 SQLite 数据库进行交互。\n\n在 LangGraph 框架中，aiosqlite 被用于 AsyncSqliteSaver 组件，负责将对话状态异步持久化到 SQLite 数据库中。",
+      "answer": "aiosqlite 的主要用途是对 SQLite 进行异步封装，让程序可以在协程中执行 SQL 查询，而不会阻塞事件循环。\n\n根据上下文，它通常在 LangGraph 框架中被使用，具体是在 `AsyncSqliteSaver` 中，用于将对话状态异步持久化到 SQLite 数据库。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -922,13 +817,13 @@
           "LangGraph": true
         }
       },
-      "time_seconds": 5.74
+      "time_seconds": 19.46
     },
     {
       "id": "Q22",
       "question": "怎么理解协程就像一个可以暂停和恢复的函数？",
       "category": "Python基础",
-      "answer": "可以把协程理解为一种特殊的函数，它在执行过程中可以主动“暂停”（让出控制权），稍后再从暂停的地方“恢复”继续执行。这与普通函数不同——普通函数一旦调用就必须一路执行到底，中间不能中断。\n\n在 Python 异步编程中，这种“暂停”是通过 **`await`** 关键字实现的。当协程遇到 `await` 表达式（比如等待一个网络请求或文件读取），它不会像同步代码那样阻塞整个程序，而是：\n\n1. **暂停当前协程的执行**；\n2. **把控制权交还给事件循环**，让事件循环去运行其他就绪的协程；\n3. 等待的操作完成后，**事件循环会自动唤醒该协程**，让它从 `await` 的下一行继续执行。\n\n举个生活中的例子：  \n想象一个厨师（相当于单线程）同时照看三个灶台：\n- 他先把一锅水放到灶上烧（对应发起一个 I/O 操作）；\n- 不等水开，立刻去另一个灶台切菜（切换到另一个协程）；\n- 切完菜，又去第三个灶台炒菜；\n- 过一会儿水开了（I/O 完成），他再回来煮面。\n\n整个过程只有一个厨师，但多个任务都在推进——这就是协程“暂停和恢复”的威力。\n\n因此，协程就像一个“可中断、可续跑”的函数，配合事件循环，实现了在单线程内高效处理并发任务的能力。",
+      "answer": "可以这样理解：\n\n协程是一种特殊的函数，它不像普通函数那样一旦开始就必须一直执行到结束，而是可以在执行过程中“暂停”，之后再从暂停的地方“恢复”继续执行。\n\n在 Python 异步编程中，协程遇到 `await` 表达式时，会把控制权交还给事件循环。此时当前协程会暂停执行，事件循环可以去运行其他协程。等 `await` 等待的操作完成后，这个协程会被自动唤醒，并从原来暂停的位置继续向下执行。\n\n例如，上下文中用“厨师同时看三个灶台”来比喻：\n\n- 厨师把水烧上，相当于协程执行到一个需要等待的操作；\n- 厨师不等水开，去切菜，相当于事件循环切换去执行其他任务；\n- 水开了之后，厨师再回来继续处理烧水这件事，相当于协程被唤醒并从暂停点继续执行。\n\n所以，协程的“暂停和恢复”本质上是：在等待 I/O 操作时不阻塞整个程序，而是先让出执行权，等条件满足后再继续执行。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -955,13 +850,46 @@
           "控制权": true
         }
       },
-      "time_seconds": 10.0
+      "time_seconds": 24.39
     },
     {
       "id": "Q23",
       "question": "SSE协议的数据格式是什么样的？",
       "category": "Python进阶",
-      "answer": "SSE（Server-Sent Events）协议的数据格式是一种基于纯文本的简单格式，每条消息由若干行组成，关键组成部分包括：\n\n- **data**: 表示要发送的实际数据内容。每行以 `data:` 开头，后接数据内容。如果数据跨多行，可以使用多个 `data:` 行，客户端会将其合并为一个完整的消息。\n- **event**（可选）: 指定事件类型，客户端可以根据该类型绑定不同的处理函数。格式为 `event: <事件名>`。\n- 每条完整的消息结尾必须用一个**空行**（即两个换行符 `\\n\\n`）分隔。\n\n### 示例格式：\n```\nevent: message\ndata: {\"token\": \"H\"}\n\ndata: {\"token\": \"e\"}\n\ndata: {\"token\": \"l\"}\n\ndata: {\"token\": \"l\"}\n\ndata: {\"token\": \"o\"}\n```\n\n> 注意：如果没有指定 `event` 字段，默认事件类型为 `message`。\n\n这种格式使得 SSE 非常适合用于服务器向浏览器推送实时更新，比如 AI 应用中的流式 token 输出。",
+      "answer": "根据提供的上下文信息，Server-Sent Events（SSE）协议的数据格式如下：\n\n- **协议基础**：SSE 是一种基于 HTTP 的单向通信协议。\n- **格式特点**：格式简单，包含以下要素：\n  - **事件类型（event）**：用纯文本行表示\n  - **数据（data）**：用纯文本行表示\n  - **消息分隔**：两条消息之间用**空行**分隔\n\n简单来说，SSE 的数据格式就是以纯文本形式组织 `event` 和 `data` 字段，每条消息之间通过一个空行进行分隔。",
+      "confidence": 1.0,
+      "rag_used": true,
+      "sources": [
+        {
+          "source": "Python异步编程快速入门.txt",
+          "index": 1
+        }
+      ],
+      "source_check": {
+        "match": true,
+        "expected": "Python异步编程快速入门.txt",
+        "found_sources": [
+          "Python异步编程快速入门.txt"
+        ]
+      },
+      "keyword_check": {
+        "hit_count": 4,
+        "total": 4,
+        "hit_rate": 1.0,
+        "details": {
+          "event": true,
+          "data": true,
+          "空行": true,
+          "单向": true
+        }
+      },
+      "time_seconds": 17.67
+    },
+    {
+      "id": "Q24",
+      "question": "FastAPI中依赖注入支持异步吗？",
+      "category": "Python实践",
+      "answer": "支持。\n\n根据上下文，FastAPI 的依赖注入机制 `Depends` 同样支持异步依赖函数：\n\n- 如果依赖函数使用 `async def` 声明，FastAPI 会自动等待它执行完成；\n- 完成后再将结果注入到路由处理函数中；\n- 这种设计适合在依赖项中执行异步操作，例如异步数据库查询、配置加载等。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -982,57 +910,19 @@
         "total": 4,
         "hit_rate": 0.75,
         "details": {
-          "event": true,
-          "data": true,
-          "空行": true,
-          "单向": false
-        }
-      },
-      "time_seconds": 9.57
-    },
-    {
-      "id": "Q24",
-      "question": "FastAPI中依赖注入支持异步吗？",
-      "category": "Python实践",
-      "answer": "是的，FastAPI 中的依赖注入（Depends）支持异步。\n\n如果依赖函数是用 async def 声明的，FastAPI 会自动 await 其执行结果，并在完成后将返回值注入到路由处理函数中。这种机制允许你在依赖中执行异步操作，例如异步数据库查询、加载配置或调用外部异步服务，而不会阻塞事件循环。",
-      "confidence": 1.0,
-      "rag_used": true,
-      "sources": [
-        {
-          "source": "Python异步编程快速入门.txt",
-          "index": 1
-        },
-        {
-          "source": "Python异步编程快速入门.txt",
-          "index": 2
-        }
-      ],
-      "source_check": {
-        "match": true,
-        "expected": "Python异步编程快速入门.txt",
-        "found_sources": [
-          "Python异步编程快速入门.txt",
-          "Python异步编程快速入门.txt"
-        ]
-      },
-      "keyword_check": {
-        "hit_count": 4,
-        "total": 4,
-        "hit_rate": 1.0,
-        "details": {
           "Depends": true,
           "异步": true,
-          "await": true,
+          "await": false,
           "注入": true
         }
       },
-      "time_seconds": 5.14
+      "time_seconds": 13.06
     },
     {
       "id": "Q25",
       "question": "Python的异步模型适合计算密集型任务吗？",
       "category": "Python基础",
-      "answer": "不适合。\n\n根据提供的上下文信息，Python 的异步编程模型更适合 I/O 密集型任务。对于计算密集型任务，异步编程没有优势，因为异步在单线程内运行，无法利用多核 CPU 并行处理计算任务。此时应考虑使用多进程或将计算任务交给线程池。",
+      "answer": "不适合。\n\n根据上下文，Python 的 `asyncio` 异步编程模型更适合 **I/O 密集型任务**，例如网络请求、数据库查询、文件读写等。它在单线程内通过事件循环切换协程，优势是没有线程切换开销、没有锁竞争问题。\n\n但对于 **CPU 密集型 / 计算密集型任务**，异步编程没有优势。上下文建议：这类任务应该使用 **多进程**，或者将计算任务交给 **线程池** 处理。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -1059,13 +949,13 @@
           "I/O": true
         }
       },
-      "time_seconds": 5.64
+      "time_seconds": 15.07
     },
     {
       "id": "Q26",
       "question": "为什么同步的I/O操作是对CPU资源的浪费？",
       "category": "Python基础",
-      "answer": "因为在同步 I/O 操作中，当程序执行到如网络请求、文件读写或数据库查询等 I/O 任务时，会**阻塞等待**该操作完成。在此期间，CPU 无法执行其他任务，处于**空闲状态**，即使系统还有其他工作可以处理。\n\n对于需要处理大量并发请求的场景（如 Web 服务器），这种“等待—不做任何事”的行为会导致 CPU 资源严重浪费。而异步编程通过在等待 I/O 时切换去执行其他任务，使 CPU 始终保持忙碌，从而更高效地利用系统资源。",
+      "answer": "同步 I/O 操作会浪费 CPU 资源，是因为在同步编程模型中，程序遇到 I/O 操作（如网络请求、数据库查询、文件读写）时会阻塞等待操作完成。\n\n在等待期间，程序无法继续执行其他任务，CPU 处于空闲状态。如果系统需要处理大量并发请求，这种“等待 I/O 完成”的时间就会造成 CPU 资源浪费。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -1092,13 +982,13 @@
           "并发": true
         }
       },
-      "time_seconds": 5.76
+      "time_seconds": 15.85
     },
     {
       "id": "Q27",
       "question": "星辰科技的试用期是多久？",
       "category": "入职与考勤",
-      "answer": "星辰科技有限公司的试用期统一为三个月，表现优秀者可申请提前转正。",
+      "answer": "星辰科技的试用期统一为 **三个月**，表现优秀者可申请提前转正。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -1124,13 +1014,13 @@
           "提前转正": true
         }
       },
-      "time_seconds": 4.97
+      "time_seconds": 10.8
     },
     {
       "id": "Q28",
       "question": "星辰科技的工作时间是怎样的？远程办公有什么规定？",
       "category": "入职与考勤",
-      "answer": "根据《星辰科技有限公司员工手册（2026版）》第二章“入职与考勤”中的规定：\n\n**工作时间：**  \n公司实行弹性工作制，核心工作时间为**上午10:00至下午4:00**。员工每日工作时间不少于8小时，每周不少于40小时。\n\n**远程办公规定：**  \n- 支持远程办公，但需**提前向直属主管申请**。  \n- **每月远程办公天数不得超过8天**。",
+      "answer": "星辰科技的工作时间制度和远程办公规定如下：\n\n1. **工作时间制度**\n   - 公司实行**弹性工作制**。\n   - **核心工作时间**为：**上午 10:00 至下午 4:00**。\n   - 员工每日工作时间**不少于 8 小时**。\n   - 每周工作时间**不少于 40 小时**。\n\n2. **远程办公规定**\n   - 公司**支持远程办公**。\n   - 远程办公需**提前向直属主管申请**。\n   - 每月远程办公天数**不超过 8 天**。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -1143,126 +1033,106 @@
         "match": true,
         "expected": "星辰科技员工手册.docx",
         "found_sources": [
-          "星辰科技员工手册.docx"
-        ]
-      },
-      "keyword_check": {
-        "hit_count": 4,
-        "total": 5,
-        "hit_rate": 0.8,
-        "details": {
-          "弹性工作制": true,
-          "10:00": true,
-          "16:00": false,
-          "远程": true,
-          "8天": true
-        }
-      },
-      "time_seconds": 7.18
-    },
-    {
-      "id": "Q29",
-      "question": "迟到多少次会扣年假？",
-      "category": "入职与考勤",
-      "answer": "根据《星辰科技有限公司员工手册（2026版）》第二章第2.3条考勤规则：\n\n- 迟到30分钟以内不算旷工；\n- **但月度累计迟到超过5次后，超出的部分每次将扣除半天年假**。\n\n也就是说，**从第6次迟到开始，每次迟到会扣除半天年假**。",
-      "confidence": 1.0,
-      "rag_used": true,
-      "sources": [
-        {
-          "source": "星辰科技员工手册.docx",
-          "index": 1
-        },
-        {
-          "source": "星辰科技员工手册.docx",
-          "index": 2
-        }
-      ],
-      "source_check": {
-        "match": true,
-        "expected": "星辰科技员工手册.docx",
-        "found_sources": [
-          "星辰科技员工手册.docx",
           "星辰科技员工手册.docx"
         ]
       },
       "keyword_check": {
         "hit_count": 3,
+        "total": 5,
+        "hit_rate": 0.6,
+        "details": {
+          "弹性工作制": true,
+          "10:00": true,
+          "16:00": false,
+          "远程": true,
+          "8天": false
+        }
+      },
+      "time_seconds": 18.2
+    },
+    {
+      "id": "Q29",
+      "question": "迟到多少次会扣年假？",
+      "category": "入职与考勤",
+      "answer": "员工月度累计迟到超过 **5 次** 后，超出部分会被扣除年假：从第 **6 次** 开始，按每次扣除 **半天年假** 计算。",
+      "confidence": 1.0,
+      "rag_used": true,
+      "sources": [
+        {
+          "source": "星辰科技员工手册.docx",
+          "index": 1
+        }
+      ],
+      "source_check": {
+        "match": true,
+        "expected": "星辰科技员工手册.docx",
+        "found_sources": [
+          "星辰科技员工手册.docx"
+        ]
+      },
+      "keyword_check": {
+        "hit_count": 2,
         "total": 4,
-        "hit_rate": 0.75,
+        "hit_rate": 0.5,
         "details": {
           "迟到": true,
-          "5次": true,
+          "5次": false,
           "半小时": false,
           "年假": true
         }
       },
-      "time_seconds": 5.07
+      "time_seconds": 11.94
     },
     {
       "id": "Q30",
       "question": "星辰科技的年假政策是什么？怎么计算？",
       "category": "薪酬与福利",
-      "answer": "星辰科技有限公司的年假政策如下：\n\n### 1. **年假天数计算**\n- 员工**入职满1年**后，享有**5天带薪年假**；\n- 此后**每增加1年工龄，年假增加1天**；\n- 年假**上限为15天**。\n\n### 2. **年假使用规则**\n- 年假需**提前一周申请**，并经**直属主管审批通过**后方可使用；\n- **当年未休完的年假**可**延期至次年3月31日前**使用；\n- **逾期未使用的年假将自动清零**。\n\n该政策旨在保障员工休息权益的同时，兼顾公司运营安排。",
+      "answer": "星辰科技的年休假政策如下：\n\n1. **年假天数计算方法**\n   - 员工入职满 1 年后，享有 **5 天带薪年假**。\n   - 此后工龄每增加 1 年，年假增加 **1 天**。\n   - 年假天数上限为 **15 天**。\n\n   例如：  \n   - 满 1 年：5 天  \n   - 满 2 年：6 天  \n   - 满 3 年：7 天  \n   以此类推，最高不超过 15 天。\n\n2. **年假申请与审批**\n   - 年假需 **提前一周申请**。\n   - 需经 **直属主管审批通过后** 方可使用。\n\n3. **年假有效期**\n   - 当年未休完的年假可延期至 **次年 3 月 31 日前** 使用。\n   - 超过该期限未使用的年假将 **自动清零**。\n\n4. **与考勤相关的年假扣减**\n   - 月度累计迟到超过 5 次的，超出部分按 **每次扣除半天年假** 计算。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "星辰科技员工手册.docx",
           "index": 1
-        },
-        {
-          "source": "星辰科技员工手册.docx",
-          "index": 2
         }
       ],
       "source_check": {
         "match": true,
         "expected": "星辰科技员工手册.docx",
         "found_sources": [
-          "星辰科技员工手册.docx",
           "星辰科技员工手册.docx"
         ]
       },
       "keyword_check": {
-        "hit_count": 4,
+        "hit_count": 2,
         "total": 4,
-        "hit_rate": 1.0,
+        "hit_rate": 0.5,
         "details": {
           "年假": true,
-          "5天": true,
-          "15天": true,
+          "5天": false,
+          "15天": false,
           "工龄": true
         }
       },
-      "time_seconds": 7.12
+      "time_seconds": 23.78
     },
     {
       "id": "Q31",
       "question": "星辰科技提供哪些员工福利？",
       "category": "薪酬与福利",
-      "answer": "星辰科技有限公司为员工提供以下福利待遇：\n\n1. **五险一金**：公司为全体员工依法缴纳。\n2. **补充商业医疗保险**：在五险一金基础上额外提供。\n3. **年度体检**：每年一次免费体检，可选择美年大健康或爱康国宾。\n4. **生日福利**：员工生日当月发放300元京东购物卡。\n5. **办公环境福利**：公司设有健身房、台球室和免费下午茶。\n\n这些福利旨在提升员工的工作体验与生活质量。",
+      "answer": "星辰科技的员工福利主要包括以下内容：\n\n1. **五险一金**：公司为全体员工缴纳五险一金。  \n2. **补充商业医疗保险**：在五险一金之外，额外提供补充商业医疗保险。  \n3. **年度免费体检**：每年一次免费体检，体检中心可选美年大健康或爱康国宾。  \n4. **生日福利**：员工生日当月发放 300 元京东购物卡。  \n5. **办公与生活配套**：公司设有健身房、台球室，并提供免费下午茶。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "星辰科技员工手册.docx",
           "index": 1
-        },
-        {
-          "source": "星辰科技员工手册.docx",
-          "index": 2
-        },
-        {
-          "source": "星辰科技员工手册.docx",
-          "index": 3
         }
       ],
       "source_check": {
         "match": true,
         "expected": "星辰科技员工手册.docx",
         "found_sources": [
-          "星辰科技员工手册.docx",
-          "星辰科技员工手册.docx",
           "星辰科技员工手册.docx"
         ]
       },
@@ -1277,13 +1147,13 @@
           "购物卡": true
         }
       },
-      "time_seconds": 6.34
+      "time_seconds": 19.91
     },
     {
       "id": "Q32",
       "question": "绩效评级S级的员工有什么特别奖励？",
       "category": "薪酬与福利",
-      "answer": "绩效评级为 S 级的员工可额外获得 2 个月工资的特别奖励。",
+      "answer": "根据《星辰科技员工手册》，年度绩效评级为 **S 级** 的员工，可以额外获得 **2 个月工资的特别奖励**。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -1310,13 +1180,13 @@
           "年终奖": false
         }
       },
-      "time_seconds": 4.51
+      "time_seconds": 11.51
     },
     {
       "id": "Q33",
       "question": "星辰科技的技术晋升路径是什么？",
       "category": "培训与晋升",
-      "answer": "星辰科技的技术序列晋升路径为：  \n**初级工程师 → 中级工程师 → 高级工程师 → 技术专家 → 架构师**。",
+      "answer": "星辰科技的技术岗位晋升通道为：\n\n**初级工程师 → 中级工程师 → 高级工程师 → 技术专家 → 架构师**",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -1344,13 +1214,13 @@
           "架构师": true
         }
       },
-      "time_seconds": 5.18
+      "time_seconds": 12.64
     },
     {
       "id": "Q34",
       "question": "员工每年有多少学习基金？可以用来做什么？",
       "category": "培训与晋升",
-      "answer": "员工每年有 **3000 元** 的学习基金，可用于以下用途：\n\n- 购买技术书籍  \n- 购买在线课程  \n- 参加行业会议",
+      "answer": "员工每年的学习培训基金额度为 **3000 元**。\n\n可用于以下用途：\n\n1. **购买技术书籍**\n2. **购买在线课程**\n3. **参加行业会议**",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -1367,62 +1237,57 @@
         ]
       },
       "keyword_check": {
-        "hit_count": 3,
+        "hit_count": 2,
         "total": 4,
-        "hit_rate": 0.75,
+        "hit_rate": 0.5,
         "details": {
           "3000元": false,
-          "学习基金": true,
+          "学习基金": false,
           "书籍": true,
           "课程": true
         }
       },
-      "time_seconds": 5.27
+      "time_seconds": 16.7
     },
     {
       "id": "Q35",
       "question": "星辰科技的病假怎么规定的？",
       "category": "薪酬与福利",
-      "answer": "根据《星辰科技有限公司员工手册（2026版）》的规定，病假相关条款如下：\n\n- 员工因病需要休息的，须凭医院出具的病假证明申请病假。  \n- 病假期间工资按基本工资的 **80%** 发放。  \n- 每月病假累计不超过 **2天** 的，不影响全勤奖。",
+      "answer": "星辰科技的病假管理制度规定如下：\n\n1. **申请条件**：员工因病需要休息的，需凭医院出具的病假证明申请病假。  \n2. **工资待遇**：病假期间工资按基本工资的 **80%** 发放。  \n3. **全勤影响**：每月病假累计不超过 **2 天** 的，不影响全勤。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "星辰科技员工手册.docx",
           "index": 1
-        },
-        {
-          "source": "星辰科技员工手册.docx",
-          "index": 2
         }
       ],
       "source_check": {
         "match": true,
         "expected": "星辰科技员工手册.docx",
         "found_sources": [
-          "星辰科技员工手册.docx",
           "星辰科技员工手册.docx"
         ]
       },
       "keyword_check": {
-        "hit_count": 5,
+        "hit_count": 4,
         "total": 5,
-        "hit_rate": 1.0,
+        "hit_rate": 0.8,
         "details": {
           "病假": true,
           "80%": true,
-          "2天": true,
+          "2天": false,
           "全勤": true,
           "证明": true
         }
       },
-      "time_seconds": 8.39
+      "time_seconds": 13.77
     },
     {
       "id": "Q36",
       "question": "星辰科技对于泄露商业机密有什么处分？",
       "category": "行为规范",
-      "answer": "根据星辰科技的规定，泄露商业机密属于违反信息安全规定的行为。公司将视情节严重程度，给予警告、记过直至解除劳动合同的处分。",
+      "answer": "根据《星辰科技员工手册》第五章规定，泄露商业机密属于违反信息安全规定的行为。公司将视情节严重程度给予以下处分：\n\n1. 警告  \n2. 记过  \n3. 直至解除劳动合同  \n\n此外，泄露内部代码、客户数据或商业机密等行为均适用上述处分规定。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -1449,51 +1314,46 @@
           "解除劳动合同": true
         }
       },
-      "time_seconds": 4.92
+      "time_seconds": 14.63
     },
     {
       "id": "Q37",
       "question": "什么情况会被视为严重违纪？",
       "category": "入职与考勤",
-      "answer": "根据提供的上下文信息，以下情况会被视为严重违纪：\n\n- **无故缺勤连续 3 天**，或  \n- **一个月内累计无故缺勤达 5 天**。\n\n出现上述任一情形，公司有权解除劳动合同。",
-      "confidence": 1.0,
+      "answer": "知识库中暂无明确列出“严重违纪”的认定情形。根据现有内容，只能确认以下行为属于违反信息安全或行为规范，公司将视情节严重程度给予警告、记过直至解除劳动合同：\n\n1. 在社交媒体上发布公司未公开的产品信息、财务数据或客户名单；  \n2. 泄露内部代码、客户数据或商业机密；  \n3. 未按要求将日常工作文件存储在公司加密云盘中，使用个人网盘存储工作相关文档。  \n\n建议上传相关文档或换个问题试试，以便获取更完整的“严重违纪”认定标准。",
+      "confidence": 0.8,
       "rag_used": true,
       "sources": [
         {
           "source": "星辰科技员工手册.docx",
           "index": 1
-        },
-        {
-          "source": "星辰科技员工手册.docx",
-          "index": 2
         }
       ],
       "source_check": {
         "match": true,
         "expected": "星辰科技员工手册.docx",
         "found_sources": [
-          "星辰科技员工手册.docx",
           "星辰科技员工手册.docx"
         ]
       },
       "keyword_check": {
-        "hit_count": 2,
+        "hit_count": 1,
         "total": 4,
-        "hit_rate": 0.5,
+        "hit_rate": 0.25,
         "details": {
-          "缺勤": true,
+          "缺勤": false,
           "3天": false,
           "5天": false,
           "严重违纪": true
         }
       },
-      "time_seconds": 5.18
+      "time_seconds": 45.03
     },
     {
       "id": "Q38",
       "question": "员工的日常工作文件应该存在哪里？",
       "category": "行为规范",
-      "answer": "员工的日常工作文件必须存储在公司的加密云盘中，禁止使用个人网盘存储工作相关文档。",
+      "answer": "员工日常工作文件必须存储在公司的加密云盘中，禁止使用个人网盘存储工作相关文档。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -1519,78 +1379,58 @@
           "工作文件": true
         }
       },
-      "time_seconds": 4.33
+      "time_seconds": 10.74
     },
     {
       "id": "Q39",
       "question": "SmartDesk Pro X1的升降高度范围是多少？",
       "category": "产品规格",
-      "answer": "SmartDesk Pro X1的桌面高度可在62cm至128cm之间自由调节，支持坐姿和站姿两种模式。用户可通过控制面板预设4个常用高度，一键切换。升降速度为3.8cm/秒，满载升降噪音低于45分贝。",
+      "answer": "SmartDesk Pro X1 的升降高度调节范围是 **62cm 至 128cm**，支持坐姿和站姿两种模式。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "SmartDesk智能办公桌产品FAQ.xlsx",
           "index": 1
-        },
-        {
-          "source": "SmartDesk智能办公桌产品FAQ.xlsx",
-          "index": 2
-        },
-        {
-          "source": "SmartDesk智能办公桌产品FAQ.xlsx",
-          "index": 3
         }
       ],
       "source_check": {
         "match": true,
         "expected": "SmartDesk智能办公桌产品FAQ.xlsx",
         "found_sources": [
-          "SmartDesk智能办公桌产品FAQ.xlsx",
-          "SmartDesk智能办公桌产品FAQ.xlsx",
           "SmartDesk智能办公桌产品FAQ.xlsx"
         ]
       },
       "keyword_check": {
-        "hit_count": 3,
+        "hit_count": 2,
         "total": 4,
-        "hit_rate": 0.75,
+        "hit_rate": 0.5,
         "details": {
           "62cm": true,
           "128cm": true,
           "4个预设": false,
-          "3.8cm": true
+          "3.8cm": false
         }
       },
-      "time_seconds": 4.98
+      "time_seconds": 12.29
     },
     {
       "id": "Q40",
       "question": "SmartDesk Pro X1的最大承重是多少？用什么材质？",
       "category": "产品规格",
-      "answer": "SmartDesk Pro X1的最大承重为**125公斤**。\n\n材质方面：\n- **桌面**：采用**E1级环保板材**，厚度为**2.5厘米**，具有防刮耐磨特性；\n- **桌腿**：采用**冷轧钢材**，经过**静电喷涂处理**，具备防锈耐用性能。",
+      "answer": "SmartDesk Pro X1 的最大承重为 **125公斤**。\n\n材质方面：\n\n- **桌面**：采用 **E1级环保板材**，厚度为 **2.5厘米**，防刮耐磨。  \n- **桌腿**：采用 **冷轧钢材**，经过静电喷涂处理，防锈耐用。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "SmartDesk智能办公桌产品FAQ.xlsx",
           "index": 1
-        },
-        {
-          "source": "SmartDesk智能办公桌产品FAQ.xlsx",
-          "index": 2
-        },
-        {
-          "source": "SmartDesk智能办公桌产品FAQ.xlsx",
-          "index": 3
         }
       ],
       "source_check": {
         "match": true,
         "expected": "SmartDesk智能办公桌产品FAQ.xlsx",
         "found_sources": [
-          "SmartDesk智能办公桌产品FAQ.xlsx",
-          "SmartDesk智能办公桌产品FAQ.xlsx",
           "SmartDesk智能办公桌产品FAQ.xlsx"
         ]
       },
@@ -1605,35 +1445,25 @@
           "2.5厘米": true
         }
       },
-      "time_seconds": 5.25
+      "time_seconds": 16.67
     },
     {
       "id": "Q41",
       "question": "怎么用手机APP控制SmartDesk Pro X1？",
       "category": "使用指南",
-      "answer": "要使用手机APP控制 SmartDesk Pro X1，操作步骤如下：\n\n1. **确认设备兼容性**：确保您的手机系统为 iOS 14 或以上、Android 10 或以上。\n2. **下载官方APP**：在应用商店搜索并下载 **SmartLife** 官方应用。\n3. **开启蓝牙**：打开手机的蓝牙功能。\n4. **进入配对模式**：长按桌面控制面板上的蓝牙按钮 **3秒**，直到指示灯闪烁，表示已进入配对模式。\n5. **添加设备**：打开 SmartLife APP，点击“添加设备”，按照提示选择 SmartDesk Pro X1 完成连接。\n\n连接成功后，您可以通过APP：\n- 记录坐站时间  \n- 设置定时提醒  \n- 查看电量消耗统计  \n\n如遇连接问题，请确认蓝牙已开启且桌子处于配对状态。",
+      "answer": "通过手机 APP 控制 SmartDesk Pro X1 的方法如下：\n\n1. 确认手机系统要求：支持 iOS 14+ 或 Android 10+。\n2. 在应用商店搜索并下载官方 APP：**SmartLife**。\n3. 打开手机蓝牙。\n4. 长按桌面控制面板上的蓝牙按钮 **3 秒**，进入配对模式。\n5. 打开 SmartLife APP，选择“添加设备”，按提示完成连接。\n\n连接成功后，APP 可以记录坐站时间、设置定时提醒、查看电量消耗统计。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "SmartDesk智能办公桌产品FAQ.xlsx",
           "index": 1
-        },
-        {
-          "source": "SmartDesk智能办公桌产品FAQ.xlsx",
-          "index": 2
-        },
-        {
-          "source": "SmartDesk智能办公桌产品FAQ.xlsx",
-          "index": 3
         }
       ],
       "source_check": {
         "match": true,
         "expected": "SmartDesk智能办公桌产品FAQ.xlsx",
         "found_sources": [
-          "SmartDesk智能办公桌产品FAQ.xlsx",
-          "SmartDesk智能办公桌产品FAQ.xlsx",
           "SmartDesk智能办公桌产品FAQ.xlsx"
         ]
       },
@@ -1648,13 +1478,13 @@
           "Android": true
         }
       },
-      "time_seconds": 6.87
+      "time_seconds": 19.42
     },
     {
       "id": "Q42",
       "question": "SmartDesk Pro X1的保修政策是什么？",
       "category": "售后政策",
-      "answer": "SmartDesk Pro X1提供3年整机保修服务，其中电机和控制器等核心部件享受5年延保。在保修期内，若出现非人为质量问题，可享受免费上门维修或更换服务。人为损坏不在保修范围内，但公司提供有偿维修服务，配件价格按官网公示标准收取。\n\n如需售后服务，可拨打客服热线400-888-6688，或通过微信小程序“SmartDesk售后”提交工单。",
+      "answer": "SmartDesk Pro X1 的保修政策如下：\n\n- **整机保修**：3 年  \n- **核心部件延保**：电机、控制器等核心部件享受 **5 年延保**  \n- **保修范围**：保修期内出现非人为质量问题，可享受免费上门维修或更换  \n- **非保修情况**：人为损坏不在保修范围内，但可提供有偿维修服务  \n- **维修配件费用**：按官网公示标准收取  \n- **售后方式**：可拨打客服热线 **400-888-6688**，或通过微信小程序 **SmartDesk售后** 提交工单",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -1671,24 +1501,24 @@
         ]
       },
       "keyword_check": {
-        "hit_count": 5,
+        "hit_count": 3,
         "total": 5,
-        "hit_rate": 1.0,
+        "hit_rate": 0.6,
         "details": {
-          "3年": true,
+          "3年": false,
           "整机": true,
-          "5年": true,
+          "5年": false,
           "核心部件": true,
           "保修": true
         }
       },
-      "time_seconds": 5.03
+      "time_seconds": 14.35
     },
     {
       "id": "Q43",
       "question": "控制面板显示E02错误是什么意思？怎么处理？",
       "category": "故障排查",
-      "answer": "控制面板显示 **E02 错误代码** 表示 **电机过热保护**，通常是由于连续升降次数过多，触发了设备的自我保护机制。\n\n**处理方法如下：**\n\n1. **暂停使用**，等待 **15–20 分钟**，让电机自然冷却；\n2. 冷却后重新尝试操作；\n3. 如果冷却后问题仍然存在，可能是 **控制盒出现故障**，建议通过 **微信小程序“SmartDesk售后”提交工单**，申请售后服务。\n\n如需进一步帮助，也可拨打客服热线：**400-888-6688**。",
+      "answer": "控制面板显示 **E02** 错误代码表示 **电机过热保护**。\n\n**可能原因：**  \n通常是因为连续升降次数过多，触发了电机的自我保护机制。\n\n**处理方法：**  \n1. 停止操作，等待 **15–20 分钟**，让电机冷却。  \n2. 冷却后重新尝试操作。  \n3. 如果冷却后问题仍然存在，可能是控制盒出现故障，建议通过微信小程序 **SmartDesk售后** 提交售后工单。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -1716,35 +1546,25 @@
           "冷却": true
         }
       },
-      "time_seconds": 5.64
+      "time_seconds": 17.25
     },
     {
       "id": "Q44",
       "question": "SmartDesk Pro X1有哪些尺寸和颜色可选？",
       "category": "产品规格",
-      "answer": "SmartDesk Pro X1提供三种桌面尺寸可选：\n\n- 120cm × 60cm：适合单人紧凑空间  \n- 140cm × 70cm：标准款，最畅销  \n- 160cm × 80cm：适合双屏或多设备用户  \n\n桌面颜色可选：胡桃木纹、白色、浅灰。  \n桌腿颜色可选：黑色、白色。",
+      "answer": "SmartDesk Pro X1 的可选信息如下：\n\n- **桌面尺寸**：\n  - 120cm × 60cm：适合单人紧凑空间\n  - 140cm × 70cm：标准款，最畅销\n  - 160cm × 80cm：适合双屏或多设备用户\n\n- **桌面颜色**：\n  - 胡桃木纹\n  - 白色\n  - 浅灰\n\n- **桌腿颜色**：\n  - 黑色\n  - 白色",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "SmartDesk智能办公桌产品FAQ.xlsx",
           "index": 1
-        },
-        {
-          "source": "SmartDesk智能办公桌产品FAQ.xlsx",
-          "index": 2
-        },
-        {
-          "source": "SmartDesk智能办公桌产品FAQ.xlsx",
-          "index": 3
         }
       ],
       "source_check": {
         "match": true,
         "expected": "SmartDesk智能办公桌产品FAQ.xlsx",
         "found_sources": [
-          "SmartDesk智能办公桌产品FAQ.xlsx",
-          "SmartDesk智能办公桌产品FAQ.xlsx",
           "SmartDesk智能办公桌产品FAQ.xlsx"
         ]
       },
@@ -1760,30 +1580,25 @@
           "白色": true
         }
       },
-      "time_seconds": 5.12
+      "time_seconds": 15.85
     },
     {
       "id": "Q45",
       "question": "SmartDesk Pro X1的售价是多少？支持分期付款吗？",
       "category": "购买信息",
-      "answer": "SmartDesk Pro X1的售价如下：\n\n- 标准版：3299元  \n- 高配版：3999元  \n\n支持分期付款，可通过花呗或信用卡选择3期、6期或12期免息分期，最低月付275元起。",
+      "answer": "**SmartDesk Pro X1 销售价格：**\n\n- **标准版**：3299元\n- **高配版**：3999元\n\n**分期付款：**\n\n支持分期付款，具体如下：\n- 支持**花呗**和**信用卡**分期\n- 可选 **3期 / 6期 / 12期** 免息分期\n- 最低月付 **275元起**\n\n**支付方式：**\n\n官网和线下体验店支持微信支付、支付宝、银联卡和信用卡。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "SmartDesk智能办公桌产品FAQ.xlsx",
           "index": 1
-        },
-        {
-          "source": "SmartDesk智能办公桌产品FAQ.xlsx",
-          "index": 2
         }
       ],
       "source_check": {
         "match": true,
         "expected": "SmartDesk智能办公桌产品FAQ.xlsx",
         "found_sources": [
-          "SmartDesk智能办公桌产品FAQ.xlsx",
           "SmartDesk智能办公桌产品FAQ.xlsx"
         ]
       },
@@ -1798,13 +1613,13 @@
           "花呗": true
         }
       },
-      "time_seconds": 4.66
+      "time_seconds": 17.63
     },
     {
       "id": "Q46",
       "question": "桌子的耗电量大吗？一年大概多少电费？",
       "category": "产品规格",
-      "answer": "SmartDesk Pro X1 的耗电量非常低：\n\n- 采用节能电机，**待机功耗仅为 0.5W**；\n- **单次升降耗电约 0.003 度**；\n- 按每天升降 10 次计算，**一年电费不到 3 元**；\n- 控制面板还带有自动休眠功能，**30 秒无操作即进入低功耗模式**。\n\n因此，这款桌子的用电成本几乎可以忽略不计。",
+      "answer": "桌子的耗电量不高。\n\nSmartDesk Pro X1 采用节能电机，待机功耗仅为 **0.5W**，单次升降耗电约 **0.003度**。如果按每天升降 **10次** 计算，一年电费大约 **不到3元**。此外，控制面板还支持自动休眠，30秒无操作后会进入低功耗模式。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -1821,40 +1636,35 @@
         ]
       },
       "keyword_check": {
-        "hit_count": 2,
+        "hit_count": 4,
         "total": 4,
-        "hit_rate": 0.5,
+        "hit_rate": 1.0,
         "details": {
           "0.5W": true,
-          "0.003度": false,
-          "3元": false,
+          "0.003度": true,
+          "3元": true,
           "待机": true
         }
       },
-      "time_seconds": 5.4
+      "time_seconds": 16.88
     },
     {
       "id": "Q47",
       "question": "安装SmartDesk Pro X1需要多久？有上门安装服务吗？",
       "category": "购买信息",
-      "answer": "安装 SmartDesk Pro X1 一般需要两人配合，耗时约 **30-45分钟**。产品附带详细安装说明和全套工具，便于用户自行安装。\n\n此外，官方提供**上门安装服务**：\n\n- **首次购买** SmartDesk Pro X1 的用户可享受**免费上门安装**；\n- 非首次购买用户可付费选择该服务，安装费为 **199元**；\n- 服务覆盖全国主要城市，下单后 **48小时内上门**。",
+      "answer": "**安装时间：**\n产品附带详细安装说明和全套安装工具，一般两人配合可在 **30-45分钟** 内完成安装。\n\n**上门安装服务：**\n提供官方上门安装服务，具体信息如下：\n\n- **覆盖范围：** 全国主要城市，48小时内上门\n- **安装费用：** 199元\n- **免费政策：** 首次购买 SmartDesk Pro X1 的用户享受 **免费上门安装** 服务\n\n如需预约安装或有其他疑问，可拨打客服热线 **400-888-6688** 或通过微信小程序\"SmartDesk售后\"提交工单。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "SmartDesk智能办公桌产品FAQ.xlsx",
           "index": 1
-        },
-        {
-          "source": "SmartDesk智能办公桌产品FAQ.xlsx",
-          "index": 2
         }
       ],
       "source_check": {
         "match": true,
         "expected": "SmartDesk智能办公桌产品FAQ.xlsx",
         "found_sources": [
-          "SmartDesk智能办公桌产品FAQ.xlsx",
           "SmartDesk智能办公桌产品FAQ.xlsx"
         ]
       },
@@ -1869,35 +1679,25 @@
           "199元": true
         }
       },
-      "time_seconds": 5.8
+      "time_seconds": 28.85
     },
     {
       "id": "Q48",
       "question": "SmartDesk Pro X1支持哪些支付方式？",
       "category": "购买信息",
-      "answer": "SmartDesk Pro X1支持以下支付方式：\n\n- 微信支付  \n- 支付宝  \n- 银联卡  \n- 信用卡  \n\n此外，还支持花呗和信用卡的3/6/12期免息分期付款。",
+      "answer": "SmartDesk Pro X1 支持的付款方式包括：\n\n- 微信支付  \n- 支付宝  \n- 银联卡  \n- 信用卡  \n\n同时支持花呗和信用卡 3/6/12 期免息分期。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
         {
           "source": "SmartDesk智能办公桌产品FAQ.xlsx",
           "index": 1
-        },
-        {
-          "source": "SmartDesk智能办公桌产品FAQ.xlsx",
-          "index": 2
-        },
-        {
-          "source": "SmartDesk智能办公桌产品FAQ.xlsx",
-          "index": 3
         }
       ],
       "source_check": {
         "match": true,
         "expected": "SmartDesk智能办公桌产品FAQ.xlsx",
         "found_sources": [
-          "SmartDesk智能办公桌产品FAQ.xlsx",
-          "SmartDesk智能办公桌产品FAQ.xlsx",
           "SmartDesk智能办公桌产品FAQ.xlsx"
         ]
       },
@@ -1912,13 +1712,13 @@
           "信用卡": true
         }
       },
-      "time_seconds": 4.58
+      "time_seconds": 18.75
     },
     {
       "id": "Q49",
       "question": "可以用非原厂的显示器支架吗？有什么兼容性要求？",
       "category": "使用指南",
-      "answer": "可以使用非原厂的显示器支架。SmartDesk Pro X1 桌板下方预留了标准 C 型夹安装空间，兼容市面上绝大多数显示器支架和理线器。\n\n兼容性要求如下：\n\n- 桌面厚度为 2.5cm；\n- 建议选购 C 型夹最大开口在 4.5cm 以上的支架产品；\n- 已测试兼容的品牌包括：NB、乐歌、Brateck 和 Ergotron。\n\n只要满足上述条件，大多数第三方显示器支架均可正常使用。",
+      "answer": "支持。SmartDesk Pro X1 可以配合其他品牌（非原厂）的显示器支架使用。\n\n兼容性要求如下：\n\n1. **安装方式**：桌板下方预留了标准 **C型夹安装空间**，因此显示器支架需支持标准 C 型夹安装。\n2. **桌面厚度**：桌面厚度为 **2.5cm**。\n3. **C型夹开口要求**：建议选购 **C型夹最大开口 4.5cm 以上** 的显示器支架。\n4. **兼容范围**：兼容市面上绝大多数显示器支架和理线器。\n5. **已测试兼容品牌**：包括 **NB、乐歌、Brateck、Ergotron**。",
       "confidence": 1.0,
       "rag_used": true,
       "sources": [
@@ -1935,25 +1735,25 @@
         ]
       },
       "keyword_check": {
-        "hit_count": 4,
+        "hit_count": 5,
         "total": 5,
-        "hit_rate": 0.8,
+        "hit_rate": 1.0,
         "details": {
-          "C型夹": false,
+          "C型夹": true,
           "显示器支架": true,
           "4.5cm": true,
           "NB": true,
           "乐歌": true
         }
       },
-      "time_seconds": 6.01
+      "time_seconds": 24.17
     },
     {
       "id": "Q50",
       "question": "如果在保修期外需要维修怎么处理？",
       "category": "售后政策",
-      "answer": "保修期外如需维修，公司提供有偿维修服务。配件价格将按照官网公示的标准收取。您可以通过以下方式申请维修服务：\n\n- 拨打客服热线：400-888-6688  \n- 或通过微信小程序“SmartDesk售后”提交工单\n\n请注意，人为损坏无论是否在保修期内，均不属于免费保修范围。",
-      "confidence": 1.0,
+      "answer": "知识库中未直接说明“超出保修期后”的处理方式，但根据现有售后政策可参考如下：\n\n- 对不在保修范围内的情况，公司提供**有偿维修服务**；\n- 维修配件价格按**官网公示标准**收取；\n- 如需维修或确认费用，可：\n  - 拨打客服热线：**400-888-6688**\n  - 通过微信小程序 **SmartDesk售后** 提交工单\n\n建议直接联系售后确认超保后的具体维修流程和费用。",
+      "confidence": 0.8,
       "rag_used": true,
       "sources": [
         {
@@ -1979,7 +1779,7 @@
           "售后": true
         }
       },
-      "time_seconds": 5.36
+      "time_seconds": 27.58
     }
   ]
 }
