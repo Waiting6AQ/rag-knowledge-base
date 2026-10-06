@@ -30,7 +30,9 @@ services:
       POSTGRES_DB: rag_engine
       TZ: Asia/Shanghai
     volumes:
-      - pg-data:/var/lib/postgresql/data
+      # postgres:18+ 的数据目录是 /var/lib/postgresql/18/docker，卷要挂在父目录；
+      # 挂在 .../data 会被镜像判定为"挂错位置的卷"而拒绝启动
+      - pg-data:/var/lib/postgresql
     healthcheck:
       # $$ 是 compose 转义：留给容器内 shell 展开，避免 compose 在解析期插值
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]

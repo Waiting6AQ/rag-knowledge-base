@@ -407,17 +407,6 @@ class RAGService:
             return result
         return []
 
-    async def delete_history(self, thread_id: str):
-        """删除该 thread 的全部 checkpoint 数据（配合 ConversationService 的元数据删除）
-
-        用官方 adelete_thread 而非裸 SQL，原因有三：
-        - PG 版 saver.conn 是连接池对象，没有 .execute()
-        - PG 版表名是 checkpoint_blobs / checkpoint_writes（SQLite 叫 writes），
-          blob 还单独拆了一张表——照抄旧 SQL 既会报错、也删不干净
-        - 它一次清三张表，且与 saver 内部锁的并发写是安全的
-        """
-        await self.checkpointer.adelete_thread(thread_id)
-
     async def chat(self, query: str, conversation_id: str | None = None,
                    temperature: float = 0.1, top_k: int = 5) -> ChatResponse:
         """

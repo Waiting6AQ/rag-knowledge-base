@@ -6,6 +6,7 @@ async 依赖会自动被 await。
 
 单例模式：通过模块级缓存变量确保昂贵资源只初始化一次。
 """
+import asyncio
 import threading
 
 from core.config import settings
@@ -31,6 +32,10 @@ _bm25_cache = None
 # ChromaDB 同一路径的 PersistentClient 并发创建会破坏其进程级单例注册表
 # （KeyError / bindings 半初始化，之后所有 Chroma 操作全废）——单例创建必须互斥
 _singleton_lock = threading.Lock()
+# 异步单例用的锁：构造过程里有 await，事件循环会在那里切走，
+# 并发首次请求会各建一个实例。不能和上面那个 threading.Lock 混用
+# （在 async 函数里持 threading.Lock 会阻塞整个事件循环）
+_service_init_lock = asyncio.Lock()
 
 
 # ==================== 基础组件 ====================
@@ -88,16 +93,22 @@ def get_document_service() -> DocumentService:
 
 
 async def get_rag_service() -> RAGService:
-    """RAG 服务单例（依赖异步 checkpointer）"""
+    """RAG 服务单例（依赖异步 checkpointer）
+
+    双重检查 + 异步锁：构造里有 await，事件循环会在那里切走，
+    并发首次请求会各建一个实例（LangGraph 图被重复编译）。
+    """
     global _rag_service
     if _rag_service is None:
-        _rag_service = RAGService(
-            vector_store=get_vector_store(),
-            llm=get_llm(),
-            checkpointer=await get_checkpointer(),
-            embeddings=get_embeddings(),
-            bm25_cache=get_bm25_cache(),
-        )
+        async with _service_init_lock:
+            if _rag_service is None:        # 等锁期间可能已被别的请求建好
+                _rag_service = RAGService(
+                    vector_store=get_vector_store(),
+                    llm=get_llm(),
+                    checkpointer=await get_checkpointer(),
+                    embeddings=get_embeddings(),
+                    bm25_cache=get_bm25_cache(),
+                )
     return _rag_service
 
 

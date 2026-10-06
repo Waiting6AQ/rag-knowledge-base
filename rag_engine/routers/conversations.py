@@ -4,7 +4,9 @@
 提供对话列表、详情查看、删除功能。
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
-from core.dependencies import get_conversation_service, get_rag_service
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+
+from core.dependencies import get_checkpointer, get_conversation_service, get_rag_service
 from models.conversation import (
     ConversationListResponse,
     ConversationDetailResponse,
@@ -73,12 +75,20 @@ async def get_conversation(
 async def delete_conversation(
     conversation_id: str,
     service: ConversationService = Depends(get_conversation_service),
-    rag: RAGService = Depends(get_rag_service),
+    checkpointer: AsyncPostgresSaver = Depends(get_checkpointer),
 ) -> ConversationDeleteResponse:
+    # 这里只依赖 checkpointer，不依赖 RAGService——删一个对话不需要构建整条 RAG 管线
+    #
+    # 用官方 adelete_thread 而非裸 SQL，原因有三：
+    # - PG 版 saver.conn 是连接池对象，没有 .execute()
+    # - PG 版表名是 checkpoint_blobs / checkpoint_writes（SQLite 叫 writes），
+    #   blob 还单独拆了一张表——照抄旧 SQL 既会报错、也删不干净
+    # - 它一次清三张表，且与 saver 内部锁的并发写是安全的
+    #
     # 顺序：先删 checkpoint，再删元数据。
     # 反过来的话，删 checkpoint 失败时元数据已消失，那条 checkpoint 就成了
     # 用户看不到、也再没有入口能删掉的孤儿数据
-    await rag.delete_history(conversation_id)
+    await checkpointer.adelete_thread(conversation_id)
     if not await service.delete(conversation_id):
         raise HTTPException(status_code=404, detail="对话不存在")
     return ConversationDeleteResponse(conversation_id=conversation_id)
