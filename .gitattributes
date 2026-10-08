@@ -1,0 +1,12 @@
+# 统一换行符为 LF
+#
+# 为什么不用 core.autocrlf：那是每台机器各自的本地配置，而且它会在 Windows 上
+# 把文件检出成 CRLF。CRLF 有两个实际代价：编辑器的 diff 视图会失效；
+# Linux 容器里的 shell 脚本会因为 \r 直接执行失败。写进仓库则处处一致。
+#
+# text=auto 让 Git 自动识别文本文件（二进制文件跳过，不做转换）
+* text=auto eol=lf
+
+# Windows 批处理必须是 CRLF，否则 cmd 解析异常
+*.bat text eol=crlf
+*.cmd text eol=crlf
