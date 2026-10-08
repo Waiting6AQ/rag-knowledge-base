@@ -161,7 +161,7 @@ async def run_eval():
 
     # ======== 第二步：初始化 RAG 管线 ========
     # 不走 HTTP（不需要启动 FastAPI 服务），直接调用 RAGService.chat()
-    # ChromaDB 数据在磁盘上，只要之前上传过文档就有
+    # 前置条件：Qdrant 已起着，且知识库里有之前上传的文档
     rag = await get_rag_service()
 
     results = []      # 每条问题的详细结果

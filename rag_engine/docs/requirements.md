@@ -19,14 +19,15 @@
 - 查询重写（多轮指代消解）
 - 置信度评估（五级锚点 LLM 自评）
 - 来源追踪（来源标签持久化到 checkpoint，刷新不丢失）
-- 混合检索（向量 + BM25 + RRF 融合）
-- CrossEncoder 重排序（阈值 0.3 过滤噪声）
+- 混合检索（Qdrant dense + sparse 双路召回，服务端 RRF 融合）
+- CrossEncoder 重排序（阈值 0.3 过滤噪声，同时承担"有无相关内容"的判断）
 - 上下文自动摘要（window=8/keep=4 增量压缩）
 - Token 级流式输出 + 管线进度反馈
 
 ## 非功能需求
 
-- 数据持久化（ChromaDB + PostgreSQL）
+- 数据持久化（Qdrant 存向量 + PostgreSQL 存关系数据）
+- 向量库外置为独立服务，支持引擎多进程部署
 - LangGraph 5 节点管线编排
 - 模块化架构，可扩展
 - 中文注释和文档

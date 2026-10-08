@@ -1,9 +1,9 @@
-"""BM25 中文分词的单元测试 + 回归测试
+"""中文 BM25 稀疏向量的单元测试 + 回归测试
 
-背景：BM25Retriever 默认按空格分词，中文句子会被整句切成一个 token，
-索引侧和查询侧都对不上，BM25 那一路实际上没在工作。这里锁住修复。
+背景：默认的按空格分词对中文等于失效——整句会被切成一个 token，索引侧和
+查询侧永远对不上，BM25 那一路实际上没在工作。这里锁住修复。
 """
-from services.bm25_index import Bm25IndexCache, tokenize_zh
+from utils.sparse_embeddings import Bm25SparseEmbeddings, tokenize_zh
 
 
 # ==================== tokenize_zh 本身 ====================
@@ -37,56 +37,61 @@ def test_empty_input():
     assert tokenize_zh("，。！") == []
 
 
+# ==================== 向量编码 ====================
+
+def test_index_is_stable_across_instances():
+    """同一个词的整数下标必须每次一样
+
+    用内置 hash() 会带进程级随机盐，重启后下标全变、已入库的向量全部失配。
+    """
+    a = Bm25SparseEmbeddings().embed_query("保修期多久")
+    b = Bm25SparseEmbeddings().embed_query("保修期多久")
+    assert a.indices == b.indices
+
+
+def test_document_indices_are_unique_and_sorted():
+    """Qdrant 要求下标不重复；排序只是让输出稳定便于比对"""
+    (vec,) = Bm25SparseEmbeddings().embed_documents(["保修保修服务"])
+    assert len(vec.indices) == len(set(vec.indices))
+    assert vec.indices == sorted(vec.indices)
+
+
+def test_tf_saturates():
+    """词频有饱和：出现两次的权重不到出现一次的两倍（BM25 的 k1 参数）"""
+    emb = Bm25SparseEmbeddings()
+    (once,) = emb.embed_documents(["保修"])
+    (twice,) = emb.embed_documents(["保修保修"])
+    idx = emb.embed_query("保修").indices[0]
+    assert dict(zip(twice.indices, twice.values))[idx] < 2 * once.values[0]
+
+
+def test_longer_document_downweights_matching_term():
+    """同一个词出现在越长（越杂）的文档里，权重越低（BM25 的长度归一化）"""
+    emb = Bm25SparseEmbeddings(avg_len=10)
+    idx = emb.embed_query("保修").indices[0]
+    (short,) = emb.embed_documents(["保修"])
+    (long_,) = emb.embed_documents(["保修" + "无关内容" * 20])
+    assert dict(zip(long_.indices, long_.values))[idx] < short.values[0]
+
+
 # ==================== 回归：中文查询要能命中中文文档 ====================
 
-class FakeVectorStore:
-    def __init__(self, docs):
-        self._docs = docs
+def test_chinese_query_shares_terms_with_expected_doc():
+    """中文查询的词要和中文文档的词对得上，且期望文档重合最多
 
-    def get(self):
-        return {
-            "ids": [d[0] for d in self._docs],
-            "documents": [d[1] for d in self._docs],
-            "metadatas": [d[2] for d in self._docs],
-        }
-
-
-def make_cache():
-    """构造 5 段互不重叠的文档，期望命中的排在正中间（下标 2）。
-
-    位置是特意选的：分词失效时所有得分都是 0，rank_bm25 的 get_top_n 内部是
-    np.argsort(scores)[::-1][:k]——全 0 时 argsort 给升序、再反转，于是退化成
-    "返回最后 k 段"。期望文档放中间，才能让"没修好"和"修好了"两种结果的
-    top-k 不同（放开头或结尾都会被这个退化顺序蒙对）。
+    老实现（按空格分词）下中文整句塌成一个 token，查询和文档永远没有共同词，
+    这一路等于没工作。这里直接断言"共同词的下标交集"——正是 Qdrant 算分的依据。
     """
     docs = [
-        ("id-0", "产品包装内含主机一台、说明书一份。", {"source": "a.md"}),
-        ("id-1", "首次使用前请充满电，充电时指示灯为红色。", {"source": "b.md"}),
-        ("id-2", "本产品提供一年整机保修服务。", {"source": "c.md"}),
-        ("id-3", "如需发票请在订单备注中说明。", {"source": "d.md"}),
-        ("id-4", "退换货需在签收后七日内申请。", {"source": "e.md"}),
+        "产品包装内含主机一台、说明书一份。",
+        "首次使用前请充满电，充电时指示灯为红色。",
+        "本产品提供一年整机保修服务。",          # ← 期望命中（与原测试同一位置）
+        "如需发票请在订单备注中说明。",
+        "退换货需在签收后七日内申请。",
     ]
-    return Bm25IndexCache(FakeVectorStore(docs))
+    emb = Bm25SparseEmbeddings()
+    query_indices = set(emb.embed_query("保修期是多久？").indices)
+    overlaps = [len(query_indices & set(v.indices)) for v in emb.embed_documents(docs)]
 
-
-def test_chinese_query_hits_expected_doc():
-    _, retriever = make_cache().ensure()
-    retriever.k = 2
-
-    hits = retriever.invoke("保修期是多久？")
-
-    assert hits, "中文查询没命中任何文档，BM25 那一侧等于没工作"
-    assert hits[0].metadata["source"] == "c.md"
-
-
-def test_chinese_query_scores_are_not_all_zero():
-    """分数全 0 说明查询词一个都没匹配上，此时返回的 top-k 与查询内容无关。
-
-    这条直接断言机制本身，不依赖 top-k 的排序细节。
-    """
-    _, retriever = make_cache().ensure()
-
-    scores = retriever.vectorizer.get_scores(tokenize_zh("保修期是多久？"))
-
-    assert max(scores) > 0
-    assert scores[2] == max(scores)
+    assert max(overlaps) > 0, "中文查询和任何文档都没有共同词，sparse 那一路等于没工作"
+    assert overlaps[2] == max(overlaps)

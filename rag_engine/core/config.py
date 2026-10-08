@@ -24,8 +24,9 @@ class Settings(BaseSettings):
     # === RAG 参数 ===
     CHUNK_SIZE: int = 500          # 文档分块大小（字符）
     CHUNK_OVERLAP: int = 100       # 相邻块重叠字符数
-    TOP_K: int = 5                 # 向量检索返回数量
-    BM25_K: int = 3                # BM25 关键词检索返回数量
+    # 混合检索返回的候选数：dense 和 sparse 两个分支各召回这么多，融合后也是这么多
+    # （Qdrant 的 prefetch limit 与最终 limit 由同一个参数决定），最后交给重排器精排
+    TOP_K: int = 5
     TEMPERATURE: float = 0.1       # LLM 温度，越低越保守（RAG 需要确定性回答）
     MAX_TOKENS: int = 2000         # LLM 最大输出长度（1000 时详细回答被截断）
 
@@ -36,8 +37,12 @@ class Settings(BaseSettings):
     PG_POOL_MIN: int = 2           # psycopg 池下限（LangGraph checkpoint 用）
     PG_POOL_MAX: int = 10          # psycopg 池上限
 
+    # === Qdrant（向量存储） ===
+    # 本地开发连 localhost；容器内由 compose 注入服务名（见 docker-compose.yml）
+    QDRANT_URL: str = "http://localhost:6333"
+    QDRANT_COLLECTION: str = "rag_documents"
+
     # === 存储路径（基于项目根目录，不受 VS Code 启动位置影响） ===
-    CHROMA_PERSIST_DIR: str = str(BASE_DIR / "data" / "chroma_db")
     UPLOAD_DIR: str = str(BASE_DIR / "data" / "uploads")
 
     # === 文件上传限制 ===

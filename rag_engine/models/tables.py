@@ -36,3 +36,28 @@ class Conversation(Base):
     # 列表页按 updated_at 倒序。单列排序不需要 DESC 索引——
     # PostgreSQL 的 btree 索引可以反向扫描，两种写法执行计划相同
     __table_args__ = (Index("conversations_updated_at_idx", "updated_at"),)
+
+
+class Document(Base):
+    """知识库文档的元数据（向量在向量库，这里只存关系信息）
+
+    从"寄生在向量库的 chunk metadata 里"改成独立表之后：
+    - 列表页是一次 SELECT，不再全量拉向量库再在 Python 里分组
+    - 上传去重直接靠 file_hash 唯一约束
+    - 删除不必再依赖向量库的元数据过滤能力
+    """
+
+    __tablename__ = "documents"
+
+    doc_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    filename: Mapped[str] = mapped_column(Text, nullable=False)
+    # SHA256 内容哈希：上传去重的唯一依据
+    file_hash: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    file_type: Mapped[str] = mapped_column(Text, nullable=False)
+    chunk_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    uploaded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    # 列表页按上传时间倒序（同 Conversation：btree 可反向扫描，无需 DESC 索引）
+    __table_args__ = (Index("documents_uploaded_at_idx", "uploaded_at"),)

@@ -2,7 +2,7 @@
 文档管理路由
 
 提供文档的上传、列表、删除功能。
-上传的文档经分块→嵌入后存入 ChromaDB，供 RAG 问答检索使用。
+上传的文档经分块→嵌入后写入向量库，元数据登记在 PostgreSQL。
 """
 from fastapi import APIRouter, File, UploadFile, Depends
 from core.dependencies import get_document_service
@@ -36,23 +36,22 @@ async def upload(
     summary="列出所有文档",
     description="返回知识库中所有已索引文档的摘要信息。",
 )
-def list_documents(
+async def list_documents(
     service: DocumentService = Depends(get_document_service),
 ) -> DocumentListResponse:
-    # 纯同步实现（ChromaDB 本地查询）：写 def 由 FastAPI 自动放入线程池执行；
-    # 若声明为 async def，同步查询会阻塞事件循环线程，卡住所有并发请求
-    return service.list_documents()
+    # 元数据在 PG：异步查询会话直接 await，不再需要丢线程池
+    return await service.list_documents()
 
 
 @router.delete(
     "/{doc_id}",
     response_model=DocumentDeleteResponse,
     summary="删除文档",
-    description="从向量库中删除指定文档及其所有分块。",
+    description="删除指定文档：向量、元数据、原始文件一并清除。",
 )
-def delete(
+async def delete(
     doc_id: str,
     service: DocumentService = Depends(get_document_service),
 ) -> DocumentDeleteResponse:
-    # 同上：内部是同步的 ChromaDB 查询 + 文件删除，交给线程池执行
-    return service.delete_document(doc_id)
+    # 内部的向量删除是同步的，由 service 自己丢线程池
+    return await service.delete_document(doc_id)

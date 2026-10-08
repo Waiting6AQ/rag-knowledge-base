@@ -2,7 +2,7 @@
 嵌入模型适配器
 
 将阿里云 DashScope Embedding API 封装为 LangChain 标准接口，
-使得 Chroma、检索器等 LangChain 组件可以直接调用。
+使得向量库、检索器等 LangChain 组件可以直接调用。
 网络类异常（超时/服务不可用/请求失败）自动指数退避重试，
 参数类错误（密钥、输入非法）直接抛出不重试。
 """

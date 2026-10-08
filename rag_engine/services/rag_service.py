@@ -5,7 +5,8 @@ RAG 服务 — 项目核心
   用户问题 → 查询改写 → 混合检索 → 生成回答 → 置信度评估
 
 特性：
-- 混合检索：向量检索（语义）+ BM25（关键词），互补提升召回率
+- 混合检索：Qdrant 一次查询做 dense（语义）+ sparse（BM25 关键词）双路召回，
+  服务端 RRF 融合，再交给 CrossEncoder 精排
 - 多轮对话：自动指代消解 + add_messages 自动追加 + AsyncPostgresSaver 持久化
 - 流式输出：SSE 格式，逐阶段返回进度（来源 → 回答 → 置信度 → 完成）
 """
@@ -20,7 +21,6 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.documents import Document
-from langchain_classic.retrievers import EnsembleRetriever
 from sentence_transformers import CrossEncoder
 
 from core.config import settings
@@ -92,17 +92,16 @@ class RAGService:
     RAG 管线总控
 
     混合检索原理：
-      向量检索（语义匹配） — 同义词、近义表达也能命中，但可能漏掉精确关键词
-      BM25（关键词匹配）  — 精确匹配术语、人名、编号等，但不懂同义词
-      混合检索取两者交集，互补短板
+      dense（语义匹配）  — 同义词、近义表达也能命中，但可能漏掉精确关键词
+      sparse（BM25）     — 精确匹配术语、人名、编号等，但不懂同义词
+      两路在 Qdrant 服务端用 RRF 融合，互补短板
     """
 
-    def __init__(self, vector_store, llm, checkpointer: AsyncPostgresSaver, embeddings, bm25_cache):
-        self.vector_store = vector_store    # ChromaDB 实例
+    def __init__(self, vector_store, llm, checkpointer: AsyncPostgresSaver, embeddings):
+        self.vector_store = vector_store    # Qdrant 混合检索实例（dense + sparse）
         self.llm = llm                      # Qwen LLM
         self.checkpointer = checkpointer    # AsyncPostgresSaver（自动持久化对话状态）
         self.embeddings = embeddings        # AliyunEmbeddings
-        self.bm25_cache = bm25_cache        # BM25 倒排索引共享缓存（文档变更由 document_service 失效）
 
         # 组装提示词模板
 
@@ -235,50 +234,19 @@ class RAGService:
         return {"query": rewritten}
 
     def _node_retrieve_documents(self, state: RAGState) -> dict:
-        """节点2：混合检索 — 向量检索 + BM25 关键词检索
+        """节点2：混合检索 — Qdrant 一次查询完成双路召回 + 服务端 RRF 融合，再精排
 
-        步骤：
-        1. 从 ChromaDB 加载所有文档块（BM25 需要全量文档建立倒排索引）
-        2. 向量检索器：语义匹配，找"意思相近"的
-        3. BM25 检索器：关键词匹配，找"词一样"的
-        4. EnsembleRetriever 用 RRF 算法融合两个排序结果
+        融合分是排名分（1/(k+rank) 量级）而不是相似度，量纲上没有意义，
+        所以不设阈值筛相关性；"检索到的内容相不相关"完全交给重排器判断
+        （见 _rerank 里的 >= 0.3）。空库和无命中因此是同一个结果。
         """
         query = state["query"]
-
-        # 从共享缓存取 BM25 索引（首次/文档变更后重建一次，避免每次查询全量拉库）
-        all_docs, bm25_retriever = self.bm25_cache.ensure()
-
-        if not all_docs:
-            # 即使没检索到也要发一次空的 sources：否则前端分不清"没找到"和"还没开始检索"
-            get_stream_writer()({"event": "sources", "data": []})
-            return {"context": "", "sources": [], "documents": []}
-
-        # 前置过滤：用向量相似度检查是否有相关文档，同时建 score_map 供后置过滤
-        scored = self.vector_store.similarity_search_with_score(query, k=20)
-        score_map = {doc.id: s for doc, s in scored if s < 1.5}
-        if not score_map:
-            get_stream_writer()({"event": "sources", "data": []})
-            return {"context": "", "sources": [], "documents": []}
-
         writer = get_stream_writer()
         writer({"event": "progress", "data": "正在检索文档"})
 
-        # 向量检索器（语义匹配）
-        vector_retriever = self.vector_store.as_retriever(
-            search_kwargs={"k": settings.TOP_K}
-        )
-        # 混合检索器：RRF 融合，偏向向量（语义 > 关键词）
-        ensemble = EnsembleRetriever(
-            retrievers=[vector_retriever, bm25_retriever],
-            weights=[0.6, 0.4],
-            k=settings.TOP_K,
-        )
-        docs = ensemble.invoke(query)
+        docs = self.vector_store.similarity_search(query, k=settings.TOP_K)
 
-        # 后置过滤：用 score_map 剔除 BM25 混入的无分文档
-        docs = [d for d in docs if d.id in score_map]
-
-        # 重排序：Cross-Encoder 对过滤后的文档精排
+        # 重排序：Cross-Encoder 联合编码精排，低于阈值的一律丢弃
         docs = self._rerank(query, docs)
 
         # 构建上下文 和 来源
@@ -296,8 +264,7 @@ class RAGService:
                     "content_preview": doc.page_content[:100] + "...",
                 })
 
-        # 推送来源到流式输出
-        writer = get_stream_writer()
+        # 即使没检索到也要发一次空的 sources：否则前端分不清"没找到"和"还没开始检索"
         writer({"event": "sources", "data": sources})
 
         return {

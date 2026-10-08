@@ -20,7 +20,7 @@
 | -------- | ------------------------------------------------------------------------------------------- |
 | 前端     | Vue 3 / Vite / axios / fetch（SSE 流式读取）/ markdown-it + DOMPurify（回答渲染）           |
 | 业务后端 | Spring Boot 3.5 / MyBatis（注解 + XML）/ MySQL / jjwt / spring-security-crypto / RestClient |
-| AI 引擎  | Python FastAPI / LangGraph / LangChain / ChromaDB / bge-reranker / DashScope Qwen           |
+| AI 引擎  | Python FastAPI / LangGraph / LangChain / Qdrant + PostgreSQL / bge-reranker / DashScope Qwen |
 
 ## 目录结构
 
@@ -49,17 +49,17 @@ Spring Boot 业务后端 (:8081)
     │      │  内部 HTTP（X-User-Id 可信头）
     │      ▼
     Python RAG 引擎 (:8000)
-    │  LangGraph：分析问题 → 检索文档 → 生成回答（向量 + BM25 + 精排）
+    │  LangGraph：分析问题 → 检索文档 → 生成回答（混合检索 + 精排）
     ▼
-PostgreSQL + ChromaDB（checkpoint 多轮上下文 / 向量索引）
+Qdrant（向量）+ PostgreSQL（checkpoint 多轮上下文 / 文档与对话元数据）
 ```
 
 ## AI 引擎核心链路（rag_engine）
 
 LangGraph 5 节点管线：`对话摘要 → 问题改写 → 文档检索 → 答案生成 → 置信度评估`
 
-- **混合检索**：向量语义 + BM25 关键词双路召回，RRF 融合互补；无相关文档时自动切换普通聊天
-- **三层过滤**：前置打分 → 后置剔除 BM25 噪声 → CrossEncoder 精排（低分文档直接丢弃）
+- **混合检索**：dense（语义）+ sparse（BM25 关键词）双路召回，Qdrant **服务端** RRF 融合成一次查询；无相关内容时自动切换普通聊天
+- **CrossEncoder 精排**：低分文档直接丢弃（阈值 0.3），"有没有相关内容"由它判断，检索层不做阈值裁剪
 - **多轮对话**：自动指代消解 + 超量增量摘要，checkpoint 持久化，重启不丢会话
 - **置信度评估**：LLM 五级锚点自评，回答附带引用来源（落库可回看）
 - **离线评测**：内置 50 条标注问题集评测脚手架，来源命中率 50/50
@@ -157,8 +157,8 @@ docker compose logs -f backend    # 看到"已创建默认管理员账号 admin"
 
 访问 `http://localhost:8080`（nginx 托管前端 + 代理 /api，无跨域）；后端 API 也可直连 `http://localhost:8081`。
 
-- **架构落地**：mysql/engine 不暴露宿主端口（"Python 不出内网"在部署层生效），容器间用服务名互访
-- **数据**：账号/会话/消息在 mysql 卷；引擎的文档/向量库与 reranker 模型缓存也在卷中（engine-data / engine-cache）；会话状态在 pg-data 卷——`down` 全部保留，`down -v` 才清空；首次问答若需下载重排模型会稍慢，之后不再重复下载
+- **架构落地**：mysql/postgres/qdrant/engine 都不暴露宿主端口（"Python 不出内网"在部署层生效），容器间用服务名互访
+- **数据**：账号/会话/消息在 mysql 卷；引擎上传的原始文档与 reranker 模型缓存在 engine-data / engine-cache 卷；会话状态与文档元数据在 pg-data 卷；向量在 qdrant-data 卷——`down` 全部保留，`down -v` 才清空；首次问答若需下载重排模型会稍慢，之后不再重复下载
 - **结束**：`docker compose stop`（保留现场，下次秒开）或 `docker compose down`
 
 ### 镜像化部署（服务器）
@@ -188,9 +188,9 @@ docker compose -f docker-compose.prod.yml up -d   # 自动拉取镜像并启动
 #   覆盖：JWT 签发/过期/伪造签名、会话归属校验（防越权）、落库内容与标题规则
 cd backend && .\mvnw.cmd test
 
-# AI 引擎：pytest（13 个用例）
-#   覆盖：文件类型/大小校验、SHA256 去重、索引失败补偿清理、
-#         BM25 缓存复用与失效、空库守卫、chunk 来源注入
+# AI 引擎：pytest（24 个用例）
+#   覆盖：文件类型/大小校验、SHA256 去重、索引失败补偿清理、删除顺序与过滤条件、
+#         中文 BM25 分词与 TF 长度归一化、chunk 来源注入
 cd rag_engine
 pip install -r requirements-dev.txt          # 仅测试依赖，不进生产镜像
 python -m pytest tests -q

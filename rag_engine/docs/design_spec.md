@@ -10,6 +10,7 @@ rag_engine/
 │   ├── dependencies.py         # 依赖注入
 │   ├── database.py             # SQLAlchemy 引擎（业务表）
 │   ├── postgres.py             # psycopg 连接池 + LangGraph checkpointer
+│   ├── qdrant.py               # Qdrant 客户端 + collection 初始化
 │   └── compat.py               # 平台兼容（Windows 事件循环策略）
 ├── models/
 │   ├── document.py
@@ -26,10 +27,10 @@ rag_engine/
 │   └── conversation_service.py # 对话元数据
 ├── utils/
 │   ├── embeddings.py           # AliyunEmbeddings
+│   ├── sparse_embeddings.py    # 中文 BM25 稀疏向量（分词 + TF 长度归一化）
 │   ├── llm.py                  # LLM 工厂
 │   └── file_utils.py           # 文件工具
-├── data/                       # gitignore
-│   ├── chroma_db/              # 向量库（文档元信息也在这里的 chunk metadata）
+├── data/                       # gitignore（向量已迁到 Qdrant，只剩上传文件）
 │   └── uploads/                # 上传的原始文档
 ├── rag_eval/                   # 离线评测
 │   ├── test_docs/              # 测试文档

@@ -43,6 +43,21 @@ services:
     # 不映射宿主端口：内网服务，只有 engine 访问
     restart: unless-stopped
 
+  # 向量存储：文档 chunk 的 dense + sparse 向量
+  qdrant:
+    image: qdrant/qdrant:v1.19.2
+    volumes:
+      - qdrant-data:/qdrant/storage
+    healthcheck:
+      # 镜像里没有 curl/wget，用 bash 的 /dev/tcp 探 6333 端口
+      test: ["CMD", "bash", "-c", ":> /dev/tcp/127.0.0.1/6333"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    # 不映射宿主端口：内网服务，只有 engine 访问
+    restart: unless-stopped
+
   engine:
     image: ${REGISTRY:-crpi-69vrskbekmelwihc.cn-guangzhou.personal.cr.aliyuncs.com}/waiting6aq/rag-engine:latest
     environment:
@@ -51,11 +66,15 @@ services:
       LLM_MODEL_NAME: ${LLM_MODEL_NAME:-openai:qwen3.8-2.4t-a95b}
       # 会话状态 + 对话元数据都在 PG（容器内没有 localhost，走服务名 postgres）
       POSTGRES_DSN: postgresql://${PG_USER:-engine}:${PG_PASSWORD:?}@postgres:5432/rag_engine
+      # 向量库（容器内没有 localhost，走服务名 qdrant）
+      QDRANT_URL: http://qdrant:6333
     volumes:
       - engine-data:/app/data
       - engine-cache:/app/.cache/huggingface
     depends_on:
       postgres:
+        condition: service_healthy
+      qdrant:
         condition: service_healthy
     restart: unless-stopped
 
@@ -86,3 +105,4 @@ volumes:
   engine-data:
   engine-cache:
   pg-data:
+  qdrant-data:

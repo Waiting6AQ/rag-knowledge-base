@@ -20,11 +20,10 @@ from routers import documents, chat, conversations
 
 # ==================== 初始化数据目录 ====================
 
-# 确保存储目录在启动时就存在
+# 只剩上传文件的落盘目录（向量已迁到 Qdrant，不需要本地向量库目录）
 import os
 from core.config import settings
-for dir_path in [settings.CHROMA_PERSIST_DIR, settings.UPLOAD_DIR]:
-    os.makedirs(dir_path, exist_ok=True)
+os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 
 # ==================== 启动预加载 ====================
 
@@ -32,7 +31,7 @@ from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """启动：初始化 PostgreSQL + 预加载重排序模型；关闭：释放数据库连接"""
+    """启动：初始化 PostgreSQL / Qdrant + 预加载重排序模型；关闭：释放连接"""
     # ---- ① PostgreSQL ----
     # 顺序：先 init_checkpointer（自带重试，会一直等到 PG 就绪），再 init_database 建业务表
     # checkpointer 必须在事件循环里构造 —— AsyncPostgresSaver.__init__ 会取 running loop
@@ -43,7 +42,15 @@ async def lifespan(app: FastAPI):
     await init_database()
     print("✅ PostgreSQL 初始化完成（checkpoint 表 + 业务表）")
 
-    # ---- ② 重排序模型 ----
+    # ---- ② Qdrant（向量库）----
+    # collection 的 sparse 向量带 Modifier.IDF，只能在建库时指定，所以建库集中在这里。
+    # 连不上就让启动失败，别拖到首次检索才炸（内部自带重试，见 core/qdrant.py）
+    from core.qdrant import init_collection
+
+    await init_collection(settings.QDRANT_COLLECTION)
+    print(f"✅ Qdrant collection 就绪（{settings.QDRANT_COLLECTION}）")
+
+    # ---- ③ 重排序模型 ----
     from sentence_transformers import CrossEncoder
     print("📦 正在加载重排序模型 BAAI/bge-reranker-base ...")
     CrossEncoder("BAAI/bge-reranker-base", model_kwargs={"torch_dtype": "auto"})
