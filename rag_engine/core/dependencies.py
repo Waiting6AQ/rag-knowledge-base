@@ -15,7 +15,7 @@ from core.database import get_session_factory
 from core.postgres import get_checkpointer  # noqa: F401
 from core.qdrant import DENSE_VECTOR_NAME, SPARSE_VECTOR_NAME, get_qdrant_client
 from utils.embeddings import AliyunEmbeddings
-from utils.llm import create_llm
+from utils.llm import create_json_llm, create_llm
 from utils.sparse_embeddings import Bm25SparseEmbeddings
 from services.document_service import DocumentService
 from services.rag_service import RAGService
@@ -25,6 +25,7 @@ from services.conversation_service import ConversationService
 
 _embeddings = None
 _llm = None
+_json_llm = None
 _vector_store = None
 _document_service = None
 _rag_service = None
@@ -54,6 +55,14 @@ def get_llm():
     if _llm is None:
         _llm = create_llm()
     return _llm
+
+
+def get_json_llm():
+    """JSON Mode 的 LLM 单例（改写节点用：两种输出形态靠 JSON 字段区分）"""
+    global _json_llm
+    if _json_llm is None:
+        _json_llm = create_json_llm()
+    return _json_llm
 
 
 def get_vector_store():
@@ -108,6 +117,7 @@ async def get_rag_service() -> RAGService:
                 _rag_service = RAGService(
                     vector_store=get_vector_store(),
                     llm=get_llm(),
+                    json_llm=get_json_llm(),
                     checkpointer=await get_checkpointer(),
                     embeddings=get_embeddings(),
                 )

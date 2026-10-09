@@ -12,7 +12,7 @@ RAG 服务 — 项目核心
 """
 import json
 import uuid
-from typing import TypedDict, Annotated, Any, AsyncGenerator
+from typing import TypedDict, Annotated, Any, AsyncGenerator, Literal
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.config import get_stream_writer
@@ -40,6 +40,7 @@ class RAGState(TypedDict):
     answer: str
     sources: list[dict[str, Any]]
     confidence: float
+    chitchat: bool                             # 改写节点判定为闲聊（当场答完，不进检索）
 
 
 # ==================== 提示词模板 ====================
@@ -52,29 +53,58 @@ RAG_SYSTEM_PROMPT = """你是一个专业的问答助手。请基于提供的上
 3. 回答要准确、简洁、有条理
 4. 如果有历史摘要，其记录了更早的对话信息，但近期对话的优先级更高（用户可能在纠正之前的信息）
 5. 上下文每段以 [来源] 开头，表示该段内容出自哪个文件
+6. 如果用户没有指明对象（例如问"保修期外怎么维修"却没说是哪个产品），回答开头先说明你依据的是哪份文档
 上下文信息：
 {context}
 {summary}"""
 
-# 无文档时的普通聊天提示词
-CHAT_SYSTEM_PROMPT = """你是一个专业的AI助手。请友好、准确地回答用户的问题。
-如果问题超出你的知识范围，诚实说明。回答要简洁有条理。
+# 检索为空时的提示词
+#
+# 单独一个节点、单独一段提示词，关键是这里【没有"回答用户的问题"这条指令】——
+# 模型不处在"可以回答"的位置上。靠提示词禁止它用自身知识作答只是第二道保险，
+# 第一道是它压根没被要求回答。
+NO_ANSWER_SYSTEM_PROMPT = """你是一个知识库问答助手。用户提出了一个问题，检索没有在知识库中找到相关资料。
 
-重要规则：
-如果有历史摘要，其记录了更早的对话信息，但近期对话的优先级更高（用户可能在纠正之前的信息）
+请简要说明这一点，并告诉用户可以补充什么信息、或怎么换个问法。
+不要用你自己的知识回答这个问题——即使用户问的是你熟悉的常识，也要如实说明知识库里没有相关资料。
+回答要简洁，两三句话即可。
+
+如果有历史摘要，其记录了更早的对话信息，但近期对话的优先级更高
 {summary}"""
 
-REWRITE_SYSTEM_PROMPT = """你是一个查询优化专家。请将用户问题改写为更适合知识库检索的查询。
+# 下面 JSON 示例里的花括号要写成双写（{{ }}）——这段提示词走 ChatPromptTemplate，
+# 单写的 { 会被模板引擎当成要填的变量。改这段时别忘了。
+REWRITE_SYSTEM_PROMPT = """你是一个查询优化专家。判断用户输入属于哪种情况，只输出 JSON。
 
-规则：
+情况 A —— 用户在问需要查阅知识库的具体问题：
+  把改写后的查询放在 query 字段，is_chitchat 为 false。
+
+情况 B —— 用户在闲聊（问候、寒暄、与知识库内容无关的对话）：
+  直接给一个得体的回复放在 reply 字段，is_chitchat 为 true。
+
+判断要保守：只要问题涉及具体信息、事实、专有名词、编号、政策、数据、流程，
+一律按情况 A 处理。只有明显是问候或闲聊时才走情况 B。
+
+情况 A 的改写规则：
 1. 口语化或模糊措辞 → 替换为精确、正式的表达
 2. 考虑同义词和近义词的多样性，如果用户用词不够精准，尝试用更通用的术语替换
 3. 多轮对话时，结合历史进行指代消解
 4. 改写后必须保持自然语言句式，禁止堆砌关键词
-5. 改写只做指代消解和用词优化：不做内容加工。输入不是明确的检索问题时（闲聊、不完整表达、无意图的词汇），原样返回
-只返回改写后的查询，不要添加任何解释。"""
+5. 改写只做指代消解和用词优化：不做内容加工
+
+输出格式（只输出 JSON，不要任何解释或代码块标记）：
+{{"is_chitchat": false, "query": "改写后的查询"}}
+{{"is_chitchat": true, "reply": "回复内容"}}"""
 
 SUMMARIZE_SYSTEM_PROMPT = """你是一个对话摘要专家。请将以下对话历史压缩为一段简洁的摘要，保留关键信息（用户姓名、偏好、重要结论等）。只返回摘要文本，不要添加解释。"""
+
+
+def _loads_json(text: str) -> dict:
+    """解析模型返回的 JSON，容忍被 ``` 代码块包起来（JSON Mode 下一般不会，但便宜）"""
+    t = text.strip()
+    if t.startswith("```"):
+        t = t.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+    return json.loads(t)
 
 EVAL_SYSTEM_PROMPT = """评估以下回答的置信度（0-1），参考标准：
   1.0 — 完全基于上下文，准确、完整
@@ -97,29 +127,31 @@ class RAGService:
       两路在 Qdrant 服务端用 RRF 融合，互补短板
     """
 
-    def __init__(self, vector_store, llm, checkpointer: AsyncPostgresSaver, embeddings):
+    def __init__(self, vector_store, llm, json_llm,
+                 checkpointer: AsyncPostgresSaver, embeddings):
         self.vector_store = vector_store    # Qdrant 混合检索实例（dense + sparse）
         self.llm = llm                      # Qwen LLM
+        self.json_llm = json_llm            # JSON Mode：改写节点的双形态输出
         self.checkpointer = checkpointer    # AsyncPostgresSaver（自动持久化对话状态）
         self.embeddings = embeddings        # AliyunEmbeddings
 
         # 组装提示词模板
 
         # RAG 问答：文档上下文 + 历史对话
-        self.rag_prompt = ChatPromptTemplate.from_messages([     
+        self.rag_prompt = ChatPromptTemplate.from_messages([
             ("system", RAG_SYSTEM_PROMPT),
             MessagesPlaceholder(variable_name="chat_history", optional=True),
             ("human", "{query}"),
         ])
-        # 多轮改写：指代消解
-        self.rewrite_prompt = ChatPromptTemplate.from_messages([ 
+        # 改写 / 闲聊分流（双形态 JSON）
+        self.rewrite_prompt = ChatPromptTemplate.from_messages([
             ("system", REWRITE_SYSTEM_PROMPT),
             MessagesPlaceholder(variable_name="chat_history"),
-            ("human", "原始问题：{query}\n\n请改写为独立完整的查询："),
+            ("human", "用户输入：{query}"),
         ])
-        # 普通聊天：无相关上下文时
-        self.chat_prompt = ChatPromptTemplate.from_messages([    
-            ("system", CHAT_SYSTEM_PROMPT),
+        # 检索为空时的弃答
+        self.no_answer_prompt = ChatPromptTemplate.from_messages([
+            ("system", NO_ANSWER_SYSTEM_PROMPT),
             MessagesPlaceholder(variable_name="chat_history", optional=True),
             ("human", "{query}"),
         ])
@@ -159,21 +191,38 @@ class RAGService:
     # ==================== 构建 LangGraph ====================
 
     def _build_graph(self):
-        """构建 5 节点串行 RAG 管线，add_messages 自动管理对话历史"""
+        """构建 RAG 管线，add_messages 自动管理对话历史
+
+        改写和检索之后各有一个条件分流：
+        - 改写节点：明显闲聊 → 当场答完直接结束（省掉检索和生成）
+        - 检索节点：精排后一条不剩 → 走弃答节点，不进生成节点
+        """
         builder = StateGraph(RAGState)
 
         builder.add_node("summarize", self._node_summarize)
         builder.add_node("rewrite_query", self._node_rewrite_query)
         builder.add_node("retrieve_documents", self._node_retrieve_documents)
         builder.add_node("generate_answer", self._node_generate_answer)
+        builder.add_node("no_answer", self._node_no_answer)
         builder.add_node("evaluate_confidence", self._node_evaluate_confidence)
 
         builder.add_edge(START, "summarize")
         builder.add_edge("summarize", "rewrite_query")
-        builder.add_edge("rewrite_query", "retrieve_documents")
-        builder.add_edge("retrieve_documents", "generate_answer")
+
+        builder.add_conditional_edges(
+            "rewrite_query",
+            self._route_after_rewrite,
+            {"retrieve_documents": "retrieve_documents", "end": END},
+        )
+        builder.add_conditional_edges(
+            "retrieve_documents",
+            self._route_after_retrieve,
+            {"generate_answer": "generate_answer", "no_answer": "no_answer"},
+        )
+
         builder.add_edge("generate_answer", "evaluate_confidence")
         builder.add_edge("evaluate_confidence", END)
+        builder.add_edge("no_answer", END)
 
         return builder.compile(checkpointer=self.checkpointer)
 
@@ -206,32 +255,53 @@ class RAGService:
         return {"summary": f"\n历史摘要：{result}\n", "summarized_count": done}
 
     async def _node_rewrite_query(self, state: RAGState) -> dict:
-        """
-        节点1：多轮对话时的查询改写（指代消解）——async：LLM 调用不占线程池位
-        例如："它有什么特点？" → "LangGraph 有什么特点？"
-        messages[:-1] 排除当前问题（由 add_messages 自动追加）
-        """
-        # messages 最后一条是当前用户消息，排除后只剩历史轮次
-        prev = state["messages"][:-1]
+        """节点1：改写查询，或判定为闲聊就地答完
 
+        一次调用干两件事，靠 JSON 的 is_chitchat 区分。闲聊在这里就终结了——不检索、
+        不生成，省掉两次调用。判断必须保守（规则见 REWRITE_SYSTEM_PROMPT）：真问题被
+        误判成闲聊的话会跳过检索，又变成用模型自身知识作答，等于把刚修好的问题换个门放回来。
+
+        解析失败一律降级成"用原问题检索"——改写是优化项，原问题也能查。
+        """
+        prev = state["messages"][:-1]              # 排除当前问题（由 add_messages 自动追加）
         writer = get_stream_writer()
         writer({"event": "progress", "data": "正在分析问题"})
         done = state.get("summarized_count", 0)    # 已压缩多少条
         fresh = prev[done:]                        # 所有未压缩消息（≤ 8 条，summarize 节点保证）
+
         try:
-            chain = self.rewrite_prompt | self.llm | StrOutputParser()
-            rewritten = await chain.ainvoke({
+            chain = self.rewrite_prompt | self.json_llm | StrOutputParser()
+            raw = await chain.ainvoke({
                 "query": state["query"],
                 "chat_history": fresh,
             })
+            data = _loads_json(raw)
         except Exception as e:
-            # 改写失败降级：用用户原问题直接检索（改写是优化项，原问题也能查）
-            print(f"⚠️ 查询改写节点异常: {type(e).__name__}: {e}")
+            print(f"⚠️ 查询改写节点异常（降级为原问题检索）: {type(e).__name__}: {e}")
             return {}
-        # 防御：flash 模型偶发空返回（含 emoji/来源标注的历史干扰），qwen3-max/35b 无此问题
-        if not rewritten.strip():
+
+        if data.get("is_chitchat"):
+            reply = str(data.get("reply") or "").strip()
+            if not reply:
+                return {}
+            writer(reply)
+            # 必须同时写 answer 和 messages：短路路径也要留下一条 AI 消息，否则消息不成对，
+            # 下一轮的 messages[:-1] 和摘要的 window=8/keep=4 都会错位
+            return {
+                "chitchat": True,
+                "answer": reply,
+                "messages": [AIMessage(content=reply)],
+            }
+
+        rewritten = str(data.get("query") or "").strip()
+        # 防御：空返回直接降级为原问题
+        if not rewritten:
             return {}
         return {"query": rewritten}
+
+    def _route_after_rewrite(self, state: RAGState) -> Literal["retrieve_documents", "end"]:
+        """闲聊已在改写节点答完，直接结束；其余进检索"""
+        return "end" if state.get("chitchat") else "retrieve_documents"
 
     def _node_retrieve_documents(self, state: RAGState) -> dict:
         """节点2：混合检索 — Qdrant 一次查询完成双路召回 + 服务端 RRF 融合，再精排
@@ -273,38 +343,32 @@ class RAGService:
             "sources": sources,
         }
 
+    def _route_after_retrieve(self, state: RAGState) -> Literal["generate_answer", "no_answer"]:
+        """精排后一条都没剩下 → 弃答，不进生成节点"""
+        return "generate_answer" if state.get("documents") else "no_answer"
+
     async def _node_generate_answer(self, state: RAGState) -> dict:
-        """节点3：有文档用 RAG 回答，没文档用普通聊天，返回 messages 由 add_messages 自动追加
-        （async — 流式生成是本管线最长的 LLM 等待，异步化后不再占用线程池位）"""
+        """节点3：基于检索到的文档生成回答，返回 messages 由 add_messages 自动追加
+        （async — 流式生成是本管线最长的 LLM 等待，异步化后不再占用线程池位）
+
+        走到这里一定有文档：检索为空由 retrieve 后的条件边分流到 no_answer 节点。
+        """
         # messages[:-1] 排除当前问题（由 {query} 单独传入），避免重复
         prev = state["messages"][:-1]
         done = state.get("summarized_count", 0)    # 已压缩多少条
         fresh = prev[done:]                        # 所有未压缩消息（≤ 8 条）
-        summary = state.get("summary", "")
-        has_context = bool(state.get("context"))
-        if has_context:
-            prompt_val = self.rag_prompt.invoke({
-                "query": state["query"],
-                "context": state["context"],
-                "chat_history": fresh,
-                "summary": summary,
-            })
-        else:    # 普通聊天
-            prompt_val = self.chat_prompt.invoke({
-                "query": state["query"],
-                "chat_history": fresh,
-                "summary": summary,
-            })
+        prompt_val = self.rag_prompt.invoke({
+            "query": state["query"],
+            "context": state["context"],
+            "chat_history": fresh,
+            "summary": state.get("summary", ""),
+        })
 
         # 逐 token 流式生成，writer 将每个 token 推送到 chat_stream
         writer = get_stream_writer()
         # 把检索到的篇数直接写进文案：前端不用自己拼，也避免两处状态互相覆盖
         # 文案不带省略号 —— 动态省略号由前端画（引擎写了会变成双份）
-        n_sources = len(state.get("sources", []))
-        if n_sources:
-            writer({"event": "progress", "data": f"正在参考 {n_sources} 篇文档生成回答"})
-        else:
-            writer({"event": "progress", "data": "未找到相关文档，正在用通用知识回答"})
+        writer({"event": "progress", "data": f"正在参考 {len(state.get('sources', []))} 篇文档生成回答"})
         full_answer = ""
         try:
             async for chunk in self.llm.astream(prompt_val):
@@ -330,6 +394,45 @@ class RAGService:
                 content=full_answer,
                 response_metadata={"sources": state.get("sources", [])},
             )],
+        }
+
+    async def _node_no_answer(self, state: RAGState) -> dict:
+        """节点3b：检索为空时的弃答
+
+        单独一个节点、单独一段提示词——提示词里【没有"回答用户的问题"这条指令】，
+        模型不处在"可以回答"的位置上。靠提示词禁止它用自身知识作答只是第二道保险，
+        第一道是它压根没被要求回答。这一点比只改提示词的结构性更强。
+
+        与 generate_answer 一样逐 token 流式输出，前端体验一致。
+        """
+        prev = state["messages"][:-1]
+        done = state.get("summarized_count", 0)
+        prompt_val = self.no_answer_prompt.invoke({
+            "query": state["query"],
+            "chat_history": prev[done:],
+            "summary": state.get("summary", ""),
+        })
+
+        writer = get_stream_writer()
+        writer({"event": "progress", "data": "未找到相关文档"})
+        full_answer = ""
+        try:
+            async for chunk in self.llm.astream(prompt_val):
+                token = chunk.content
+                if not token:
+                    continue
+                full_answer += token
+                writer(token)
+        except Exception as e:
+            print(f"⚠️ 弃答节点异常: {type(e).__name__}: {e}")
+        if not full_answer:
+            # 兜底文案本身也不含任何知识性内容，不可能编造
+            full_answer = "知识库中没有找到相关内容，建议换个问法或补充相关文档。"
+            writer(full_answer)
+
+        return {
+            "answer": full_answer,
+            "messages": [AIMessage(content=full_answer)],
         }
 
     async def _node_evaluate_confidence(self, state: RAGState) -> dict:
