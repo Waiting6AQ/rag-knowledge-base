@@ -22,7 +22,6 @@ class Conversation(Base):
 
     id: Mapped[str] = mapped_column(Text, primary_key=True)
     title: Mapped[str | None] = mapped_column(Text)
-    message_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     # TIMESTAMPTZ 而非 TEXT：
     # ① 旧实现存裸 ISO 字符串（无时区），跨时区会静默错序，且 JS 的 new Date() 会当本地时间解析
     # ② server_default=NOW() 让时间由数据库生成，不依赖应用容器的时区设置

@@ -11,7 +11,6 @@ class ConversationSummary(BaseModel):
     """对话列表中的摘要信息（不包含完整消息内容，节省带宽）"""
     conversation_id: str                         # 对话唯一 ID
     title: str                                   # 对话标题（取第一条用户消息的前 80 字）
-    message_count: int                           # 对话中的消息总数
     created_at: str                              # 创建时间（ISO 格式）
     updated_at: str                              # 最后更新时间
 

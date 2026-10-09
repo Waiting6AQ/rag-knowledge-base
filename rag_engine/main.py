@@ -10,6 +10,7 @@ RAG 知识库系统 — 应用入口
     API 文档   http://localhost:8000/docs
     Web 界面   http://localhost:8000
 """
+import sys
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -17,6 +18,15 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from routers import documents, chat, conversations
+
+# ==================== 控制台编码兼容 ====================
+
+# Windows 控制台默认 GBK，日志里的 ⚠️ / ✅ 会让 print 抛 UnicodeEncodeError。
+# 后果不只是日志乱码：节点里"打印警告后降级"的写法会变成打印本身崩掉，降级失效。
+# 保留控制台原本的编码，只把编不出来的字符换成 ?（Linux/Docker 是 UTF-8，这行是空操作）
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(errors="replace")
 
 # ==================== 初始化数据目录 ====================
 

@@ -36,16 +36,15 @@ class ConversationService:
 
     # ==================== CRUD ====================
 
-    async def upsert(self, conv_id: str, title: str, message_count: int) -> None:
+    async def upsert(self, conv_id: str, title: str) -> None:
         """创建或更新对话摘要（单条语句，天然幂等，无竞态）"""
         stmt = (
             insert(Conversation)
-            .values(id=conv_id, title=title, message_count=message_count)
+            .values(id=conv_id, title=title)
             .on_conflict_do_update(
                 index_elements=[Conversation.id],
                 set_={
                     "title": title,
-                    "message_count": message_count,
                     # 只刷新 updated_at，created_at 保持首次写入的值
                     "updated_at": func.now(),
                 },
@@ -76,7 +75,6 @@ class ConversationService:
                 ConversationSummary(
                     conversation_id=r.id,
                     title=r.title or "",
-                    message_count=r.message_count,
                     created_at=_iso(r.created_at),
                     updated_at=_iso(r.updated_at),
                 )
