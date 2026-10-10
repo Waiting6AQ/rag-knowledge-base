@@ -83,7 +83,8 @@ services:
     environment:
       DB_PASSWORD: ${DB_PASSWORD:?}
       DB_URL: jdbc:mysql://mysql:3306/rag_admin?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
-      JWT_SECRET: ${JWT_SECRET:-rag-admin-jwt-secret-key-change-me-in-production-2026}
+      # 用 :? 而非 :- ——签名密钥不能有公开的默认值：没配就拒绝启动，别静默降级
+      JWT_SECRET: ${JWT_SECRET:?请在 .env 设置 JWT_SECRET}   # ≥32 字符，否则 jjwt 拒绝启动
       AI_SERVICE_URL: http://engine:8000
     depends_on:
       mysql:

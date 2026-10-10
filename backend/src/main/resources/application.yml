@@ -48,7 +48,8 @@ mybatis:
     map-underscore-to-camel-case: true
 
 jwt:
-  secret: ${JWT_SECRET:rag-admin-jwt-secret-key-change-me-in-production-2026}
+  # 不给默认值：环境变量缺失时直接启动失败，避免静默用一个人人可见的密钥签名 token
+  secret: ${JWT_SECRET}
   expire-hours: 168    # token 有效期 7 天
 
 app:
