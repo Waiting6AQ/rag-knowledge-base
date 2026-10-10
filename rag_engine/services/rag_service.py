@@ -46,7 +46,7 @@ class RAGState(TypedDict):
     context: str
     answer: str
     sources: list[dict[str, Any]]
-    confidence: float
+    confidence: float | None                   # None = 本次没评估（没走 RAG）
     chitchat: bool                             # 改写节点判定为闲聊（当场答完，不进检索）
 
 
@@ -58,6 +58,30 @@ def _loads_json(text: str) -> dict:
     if t.startswith("```"):
         t = t.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
     return json.loads(t)
+
+
+def _turn_input(query: str) -> dict:
+    """每轮开始时的初始状态（chat / chat_stream 共用）
+
+    除了 query 和用户消息，还要把【上一轮的产物清空】。LangGraph 的状态是按返回的键
+    合并的——某个节点这一轮没写某个键，上一轮的值就会留着。chitchat 尤其致命：
+    上一轮判定成闲聊设了 True，这一轮不覆盖就整轮被条件边短路掉（不检索、不生成，
+    用户什么都看不到）。
+
+    为什么统一在这里清、而不是靠各节点自己写全：图上每新增一条"提前结束"的路径
+    （闲聊直接结束、无文档走 no_answer），那条路径就会跳过本来一定会跑的节点，
+    那些节点负责写的键就没人写了。每轮统一重置是"整类"的修法。
+    """
+    return {
+        "query": query,
+        "messages": [HumanMessage(content=query)],
+        "chitchat": False,     # 本轮尚未判定
+        "documents": [],
+        "sources": [],
+        "context": "",
+        "answer": "",
+        "confidence": None,    # 未评估（不要写成 0.0——那会被当成"评估结果是 0"）
+    }
 
 
 # ==================== RAG 服务类 ====================
@@ -214,6 +238,9 @@ class RAGService:
         done = state.get("summarized_count", 0)    # 已压缩多少条
         fresh = prev[done:]                        # 所有未压缩消息（≤ 8 条，summarize 节点保证）
 
+        # 注意：chitchat 必须【每条路径都显式写】。LangGraph 是按键合并状态——没返回的键
+        # 保持上一轮的值。上一轮判定成闲聊设了 True，这一轮不覆盖的话它会一直留着，
+        # 于是后续每一轮都在条件边被短路（不检索、不生成，用户什么都看不到）。
         try:
             chain = self.rewrite_prompt | self.json_llm | StrOutputParser()
             raw = await chain.ainvoke({
@@ -223,26 +250,27 @@ class RAGService:
             data = _loads_json(raw)
         except Exception as e:
             print(f"⚠️ 查询改写节点异常（降级为原问题检索）: {type(e).__name__}: {e}")
-            return {}
+            return {"chitchat": False}
 
         if data.get("is_chitchat"):
             reply = str(data.get("reply") or "").strip()
-            if not reply:
-                return {}
-            writer(reply)
-            # 必须同时写 answer 和 messages：短路路径也要留下一条 AI 消息，否则消息不成对，
-            # 下一轮的 messages[:-1] 和摘要的 window=8/keep=4 都会错位
-            return {
-                "chitchat": True,
-                "answer": reply,
-                "messages": [AIMessage(content=reply)],
-            }
+            if reply:
+                writer(reply)
+                # 必须同时写 answer 和 messages：短路路径也要留下一条 AI 消息，否则消息不成对，
+                # 下一轮的 messages[:-1] 和摘要的 window=8/keep=4 都会错位
+                return {
+                    "chitchat": True,
+                    "answer": reply,
+                    "messages": [AIMessage(content=reply)],
+                }
+            # reply 为空：别把这一轮吞掉，当检索问题继续走
+            return {"chitchat": False}
 
         rewritten = str(data.get("query") or "").strip()
         # 防御：空返回直接降级为原问题
         if not rewritten:
-            return {}
-        return {"query": rewritten}
+            return {"chitchat": False}
+        return {"chitchat": False, "query": rewritten}
 
     def _route_after_rewrite(self, state: RAGState) -> Literal["retrieve_documents", "end"]:
         """闲聊已在改写节点答完，直接结束；其余进检索"""
@@ -385,7 +413,8 @@ class RAGService:
         context = state.get("context", "")
         if not context:
             # 没有文档时直接跳过评估，不发进度（瞬时返回，提示了反而闪一下）
-            return {"confidence": 0.0}
+            # 返回 None 而不是 0.0："没评估"和"评估为 0"是两回事
+            return {"confidence": None}
 
         # 回答出完到 done 之间有一段评估耗时：不提示的话看起来像卡住了
         get_stream_writer()({"event": "progress", "data": "正在评估回答置信度"})
@@ -435,16 +464,14 @@ class RAGService:
 
         config = {"configurable": {"thread_id": conversation_id}}
         # add_messages 自动将 HumanMessage 追加到 messages 列表
-        result = await self.graph.ainvoke(
-            {"query": query, "messages": [HumanMessage(content=query)]}, config
-        )
+        result = await self.graph.ainvoke(_turn_input(query), config)
 
         sources = [SourceInfo(**s) for s in result.get("sources", [])]
         return ChatResponse(
             conversation_id=conversation_id,
             answer=result["answer"],
             sources=sources,
-            confidence=result.get("confidence", 0.0),
+            confidence=result.get("confidence"),
             rewritten_query=(
                 result["query"] if result["query"] != query else None
             ),
@@ -465,7 +492,7 @@ class RAGService:
             conversation_id = str(uuid.uuid4())
 
         config = {"configurable": {"thread_id": conversation_id}}
-        input_data = {"query": query, "messages": [HumanMessage(content=query)]}
+        input_data = _turn_input(query)
 
         sources = []
         async for chunk in self.graph.astream(input_data, config, stream_mode="custom"):
@@ -479,8 +506,8 @@ class RAGService:
 
         # 流结束后取最终状态
         state = await self.graph.aget_state(config)
-        confidence = 0.0
+        confidence = None
         if state and state.values:
-            confidence = state.values.get("confidence", 0.0)
+            confidence = state.values.get("confidence")
 
         yield f"event: done\ndata: {json.dumps({'conversation_id': conversation_id, 'confidence': confidence, 'rag_used': len(sources) > 0}, ensure_ascii=False)}\n\n"

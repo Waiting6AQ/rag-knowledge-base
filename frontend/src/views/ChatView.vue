@@ -341,7 +341,8 @@ async function send() {
             status.value = '请求失败'
           } else if (event === 'done') {
             status.value = (data.rag_used ? '✅ RAG 检索完成' : '✅ 回答完成')
-              + (data.confidence ? ` · 置信度 ${Math.round(data.confidence * 100)}%` : '')
+              // 用 `!= null` 而不是真假判断：置信度真的是 0 时也该显示（0 是有效值，不是"没有"）
+              + (data.confidence != null ? ` · 置信度 ${Math.round(data.confidence * 100)}%` : '')
             currentSessionId.value = String(data.session_id)
             // URL 同步：会话 id 是首条消息发出后才由后端生成的
             if (!sameId(route.params.sessionId, data.session_id)) {

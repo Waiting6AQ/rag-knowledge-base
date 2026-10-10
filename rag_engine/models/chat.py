@@ -46,6 +46,8 @@ class ChatResponse(BaseModel):
     conversation_id: str                         # 对话 ID（用于多轮对话）
     answer: str                                  # LLM 生成的回答
     sources: list[SourceInfo]                    # 引用来源列表
-    confidence: float = Field(..., ge=0, le=1)  # 置信度分数 0~1
+    # 置信度 0~1；None 表示"这次没评估"（没走 RAG，没有可评估的上下文），
+    # 和"评估为 0"是两回事——前端据此决定显不显示
+    confidence: float | None = Field(None, ge=0, le=1)
     rewritten_query: str | None = None           # 多轮对话时改写后的查询（单轮为 None）
     rag_used: bool = False                       # 是否实际使用了 RAG（检索到了文档）
