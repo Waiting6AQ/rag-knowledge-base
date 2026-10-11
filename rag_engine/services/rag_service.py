@@ -47,7 +47,7 @@ class RAGState(TypedDict):
     answer: str
     sources: list[dict[str, Any]]
     confidence: float | None                   # None = 本次没评估（没走 RAG）
-    chitchat: bool                             # 改写节点判定为闲聊（当场答完，不进检索）
+    chitchat: bool | None                      # None = 本轮尚未判定；True = 闲聊（当场答完，不进检索）
 
 
 # ==================== 辅助函数 ====================
@@ -75,7 +75,7 @@ def _turn_input(query: str) -> dict:
     return {
         "query": query,
         "messages": [HumanMessage(content=query)],
-        "chitchat": False,     # 本轮尚未判定
+        "chitchat": None,      # 本轮尚未判定（None ≠ False：后者是"判定为非闲聊"）
         "documents": [],
         "sources": [],
         "context": "",
@@ -273,8 +273,17 @@ class RAGService:
         return {"chitchat": False, "query": rewritten}
 
     def _route_after_rewrite(self, state: RAGState) -> Literal["retrieve_documents", "end"]:
-        """闲聊已在改写节点答完，直接结束；其余进检索"""
-        return "end" if state.get("chitchat") else "retrieve_documents"
+        """闲聊已在改写节点答完，直接结束；其余进检索
+
+        chitchat 为 None 说明改写节点漏写了——那是图结构 bug。这里兜底走检索：那条路
+        会正常产出回答或"没找到"，是完整的行为（不像 agent 那边兜底会给出空消息），
+        但要让它可见，别静默按默认路走。
+        """
+        chitchat = state.get("chitchat")
+        if chitchat is None:
+            print("⚠️ 改写节点未设置 chitchat，按检索问题处理")
+            return "retrieve_documents"
+        return "end" if chitchat else "retrieve_documents"
 
     def _node_retrieve_documents(self, state: RAGState) -> dict:
         """节点2：混合检索 — Qdrant 一次查询完成双路召回 + 服务端 RRF 融合，再精排
@@ -287,6 +296,9 @@ class RAGService:
         writer = get_stream_writer()
         writer({"event": "progress", "data": "正在检索文档"})
 
+        # 这里故意不 catch：检索失败（向量库 / embedding 挂了）就让它抛出去，
+        # 前端会显示"AI 服务暂时不可用"——那是诚实的。在这里降级成"没找到"反而误导，
+        # 会让用户以为库里真没有，而实际是我们出了问题
         docs = self.vector_store.similarity_search(query, k=settings.TOP_K)
 
         # 重排序：Cross-Encoder 联合编码精排，低于阈值的一律丢弃
