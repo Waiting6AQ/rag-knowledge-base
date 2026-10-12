@@ -21,7 +21,7 @@
 | 层         | 技术                                                             |
 | ---------- | ---------------------------------------------------------------- |
 | Web 框架   | FastAPI + Uvicorn                                                |
-| LLM 编排   | LangGraph StateGraph（5 节点管线）                               |
+| LLM 编排   | LangGraph StateGraph（6 节点管线）                               |
 | LLM        | 通义千问 `qwen3.7-max`（DashScope），备用模型自动切换            |
 | Embeddings | DashScope `qwen3.7-text-embedding`（1024 维）                    |
 | 向量存储   | Qdrant（dense Cosine + sparse 带 `Modifier.IDF`，服务端 RRF 融合）|
@@ -57,7 +57,7 @@ rag_engine/
 │   └── conversations.py        # 对话管理（含 checkpoint 同步清理）
 ├── services/
 │   ├── document_service.py     # 文档处理（验证→哈希去重→分块→写向量库→登记 PG）
-│   ├── rag_service.py          # RAG 核心管线（LangGraph 5 节点）
+│   ├── rag_service.py          # RAG 核心管线（LangGraph 6 节点）
 │   └── conversation_service.py # 对话元数据 CRUD
 ├── utils/
 │   ├── embeddings.py           # 向量模型封装
@@ -83,15 +83,20 @@ rag_engine/
 ## 管线架构
 
 ```
-START → summarize → rewrite_query → retrieve_documents → generate_answer → evaluate_confidence → END
+START → summarize → rewrite_query → 条件路由
+                                      ├── 闲聊 → END（改写节点就地答完，不检索不生成）
+                                      └── → retrieve_documents → 条件路由
+                                              ├── 有相关文档 → generate_answer → evaluate_confidence → END
+                                              └── 无相关文档 → no_answer → END
 ```
 
 | 节点                  | 职责                                              |
 | --------------------- | ------------------------------------------------- |
 | `summarize`           | 消息超量时增量压缩旧消息为摘要，注入生成 prompt   |
-| `rewrite_query`       | 多轮指代消解，将模糊问题改写为独立完整的查询      |
+| `rewrite_query`       | 多轮指代消解，将模糊问题改写为独立完整的查询；判定闲聊时当场答完并结束 |
 | `retrieve_documents`  | Qdrant 混合检索（双路召回 + RRF 融合）→ CrossEncoder 精排 |
-| `generate_answer`     | 基于上下文生成回答（RAG 模式）或普通聊天          |
+| `generate_answer`     | 基于上下文生成回答（RAG 模式）                    |
+| `no_answer`           | 检索无相关内容时坦诚告知没找到，不用模型自身知识作答 |
 | `evaluate_confidence` | LLM 五级锚点评分，无上下文时跳过                  |
 
 ## 检索链路数据流
