@@ -1,10 +1,12 @@
 package com.ragadmin.controller;
 
 import com.ragadmin.common.Result;
+import com.ragadmin.dto.DocumentContentResponse;
 import com.ragadmin.dto.DocumentListResponse;
 import com.ragadmin.dto.DocumentUploadResponse;
 import com.ragadmin.service.DocumentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,6 +32,17 @@ public class DocumentController {
     @PostMapping("/upload")
     public Result<DocumentUploadResponse> upload(@RequestParam("file") MultipartFile file) {
         return Result.ok(documentService.upload(file));
+    }
+
+    @GetMapping("/{docId}/content")
+    public Result<DocumentContentResponse> content(@PathVariable String docId) {
+        return Result.ok(documentService.getContent(docId));
+    }
+
+    /** 原始文件字节（非 JSON：前端在浏览器里重画 pdf/docx/xlsx 用） */
+    @GetMapping("/{docId}/raw")
+    public ResponseEntity<byte[]> raw(@PathVariable String docId) {
+        return documentService.raw(docId);
     }
 
     @DeleteMapping("/{docId}")

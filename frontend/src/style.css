@@ -182,7 +182,7 @@ body {
   transition: background .15s;
 }
 .doc-list-item:hover { background: var(--primary-soft); }
-.doc-list-item .doc-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.doc-list-item .doc-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; cursor: pointer; }
 .doc-list-item .doc-chunks { color: var(--text-faint); }
 
 .sidebar-footer { padding: 12px 14px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
@@ -334,6 +334,8 @@ body {
   transition: background .15s;
 }
 .source-tags .file-tag:hover { background: var(--primary-soft); }
+/* 只有能点开的标签（带 doc_id）才给手型光标——改造前存下的历史来源没有 doc_id */
+.source-tags .file-tag.is-clickable { cursor: pointer; }
 
 /* 进度提示：只有灰斜体文字。这里不加转圈 —— 文字进的是 v-html 渲染的气泡，
    塞不进元素；而且同一屏出现多个转圈会显得乱 */

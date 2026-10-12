@@ -66,13 +66,31 @@ def detect_loader(file_path: str, ext: str):
     return loader_cls(file_path)
 
 
+# 扩展名 → MIME 类型（返回原始文件时告诉浏览器该怎么对待它）
+_MEDIA_TYPES = {
+    ".txt": "text/plain; charset=utf-8",
+    ".md": "text/markdown; charset=utf-8",
+    ".pdf": "application/pdf",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+}
+
+
+def media_type_for(ext: str) -> str:
+    """扩展名对应的 MIME 类型，不认识的类型退回二进制流"""
+    return _MEDIA_TYPES.get(ext, "application/octet-stream")
+
+
 async def save_upload(file: UploadFile, target_dir: str, max_size_bytes: int) -> tuple[Path, str]:
     """流式保存文件，边写边算 SHA256、边校验大小，返回 (保存路径, 文件哈希)
 
     全程内存仅占缓冲区块大小，避免大文件一次性读入内存。
     """
     os.makedirs(target_dir, exist_ok=True)
-    save_path = Path(target_dir) / file.filename
+    # 只取最后一段文件名。file.filename 是客户端说了算的，传 "../../x.txt" 这种
+    # 直接拼路径就会写到上传目录之外（路径穿越）
+    safe_name = Path(file.filename or "").name or "upload"
+    save_path = Path(target_dir) / safe_name
     if save_path.exists():
         # 同名文件已存在：加 (1) (2) 后缀，类似 Windows 行为
         stem = save_path.stem

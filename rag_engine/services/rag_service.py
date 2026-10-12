@@ -316,7 +316,7 @@ class RAGService:
                 sources.append({
                     "index": len(sources) + 1,
                     "source": doc.metadata.get("source", "unknown"),
-                    "content_preview": doc.page_content[:100] + "...",
+                    "doc_id": doc.metadata.get("doc_id"),
                 })
 
         # 即使没检索到也要发一次空的 sources：否则前端分不清"没找到"和"还没开始检索"

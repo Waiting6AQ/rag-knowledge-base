@@ -1,6 +1,7 @@
 package com.ragadmin.service;
 
 import com.ragadmin.common.BusinessException;
+import com.ragadmin.dto.DocumentContentResponse;
 import com.ragadmin.dto.DocumentListResponse;
 import com.ragadmin.dto.DocumentUploadResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -44,6 +46,47 @@ public class DocumentService {
                     .body(DocumentListResponse.class);
         } catch (ResourceAccessException e) {
             // 引擎不可达：与 delete/upload 及 ChatService 一致的降级（友好提示而非 500）
+            log.warn("AI 服务不可达: {}", e.getMessage());
+            throw new BusinessException(503, "AI 服务暂时不可用，请稍后再试");
+        }
+    }
+
+    /** 读取文档全文（供前端点开引用来源 / 文档列表时查看） */
+    public DocumentContentResponse getContent(String docId) {
+        try {
+            return restClient.get()
+                    .uri(aiServiceUrl + "/api/v1/documents/" + docId + "/content")
+                    .retrieve()
+                    .body(DocumentContentResponse.class);
+        } catch (HttpClientErrorException e) {
+            // 透传 Python 的错误语义：404 文档不存在 / 410 原始文件已不在服务器上
+            throw new BusinessException(e.getStatusCode().value(), extractDetail(e));
+        } catch (ResourceAccessException e) {
+            log.warn("AI 服务不可达: {}", e.getMessage());
+            throw new BusinessException(503, "AI 服务暂时不可用，请稍后再试");
+        }
+    }
+
+    /**
+     * 原始文件字节 + 类型（前端按格式渲染原文时用）
+     *
+     * 网关里唯一非 JSON 的返回：前端要在浏览器里重画 pdf/docx/xlsx，必须拿到原始字节。
+     * 前端带 token 取回后转成 blob URL，所以不会暴露一个无鉴权的文件地址。
+     */
+    public ResponseEntity<byte[]> raw(String docId) {
+        try {
+            ResponseEntity<byte[]> resp = restClient.get()
+                    .uri(aiServiceUrl + "/api/v1/documents/" + docId + "/raw")
+                    .retrieve()
+                    .toEntity(byte[].class);
+            // 把引擎给的 Content-Type 原样带出去，前端才知道这是 pdf 还是 xlsx
+            return ResponseEntity.ok()
+                    .contentType(resp.getHeaders().getContentType())
+                    .body(resp.getBody());
+        } catch (HttpClientErrorException e) {
+            // 透传 Python 的错误语义：404 文档不存在 / 410 原始文件已不在服务器上
+            throw new BusinessException(e.getStatusCode().value(), extractDetail(e));
+        } catch (ResourceAccessException e) {
             log.warn("AI 服务不可达: {}", e.getMessage());
             throw new BusinessException(503, "AI 服务暂时不可用，请稍后再试");
         }

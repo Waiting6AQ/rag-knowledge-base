@@ -38,7 +38,8 @@ class SourceInfo(BaseModel):
     """检索到的来源文档信息"""
     index: int                                   # 来源编号（1, 2, 3...）
     source: str                                  # 来源文件名
-    content_preview: str                         # 来源内容的前 100 字预览
+    # 文档 ID：前端据此拉原文查看。改造前存下的历史来源没有这个字段，为 None 时前端不显示为可点
+    doc_id: str | None = None
 
 
 class ChatResponse(BaseModel):

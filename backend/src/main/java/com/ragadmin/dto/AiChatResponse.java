@@ -27,12 +27,13 @@ public class AiChatResponse {
     @JsonProperty("rag_used")
     private Boolean ragUsed;
 
-    /** 引用来源：检索到的文档片段 */
+    /** 引用来源：检索到的文档 */
     @Data
     public static class SourceInfo {
         private Integer index;
         private String source;
-        @JsonProperty("content_preview")
-        private String contentPreview;
+        /** 文档 ID：前端据此拉原文查看；改造前存下的历史来源没有这个字段 */
+        @JsonProperty("doc_id")
+        private String docId;
     }
 }

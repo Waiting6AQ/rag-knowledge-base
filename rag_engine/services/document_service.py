@@ -20,7 +20,12 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from core.config import settings
 from core.qdrant import DOC_ID_FIELD
-from utils.file_utils import validate_extension, detect_loader, save_upload
+from utils.file_utils import (
+    validate_extension,
+    detect_loader,
+    media_type_for,
+    save_upload,
+)
 from utils.embeddings import AliyunEmbeddings
 from models.tables import Document
 from models.document import (
@@ -28,6 +33,7 @@ from models.document import (
     DocumentInfo,
     DocumentListResponse,
     DocumentDeleteResponse,
+    DocumentContentResponse,
 )
 
 
@@ -186,6 +192,66 @@ class DocumentService:
                 for r in rows
             ],
         )
+
+    # ==================== 内容 ====================
+
+    async def get_content(self, doc_id: str) -> DocumentContentResponse:
+        """读取文档全文（前端点开引用来源 / 文档列表时查看）
+
+        用与索引时同一套 loader 重新解析原始文件，所以看到的就是被索引的内容。
+        解析是同步重活（PDF/docx 尤甚），丢线程池。
+        """
+        async with self._session_factory() as session:
+            row = await session.get(Document, doc_id)
+            if row is None:
+                raise HTTPException(status_code=404, detail=f"文档 '{doc_id}' 不存在")
+            filename, file_type = row.filename, row.file_type
+
+        file_path = os.path.join(settings.UPLOAD_DIR, filename)
+        if not os.path.exists(file_path):
+            # 元数据行还在、磁盘上的文件没了：这是被手工清理过，和"文档不存在"是两回事
+            raise HTTPException(
+                status_code=410,
+                detail=f"文档 '{filename}' 的原始文件已不在服务器上",
+            )
+
+        text = await run_in_threadpool(self._load_text, file_path, file_type)
+        truncated = len(text) > settings.DOC_CONTENT_MAX_CHARS
+
+        return DocumentContentResponse(
+            doc_id=doc_id,
+            filename=filename,
+            file_type=file_type,
+            content=text[: settings.DOC_CONTENT_MAX_CHARS],
+            truncated=truncated,
+        )
+
+    @staticmethod
+    def _load_text(file_path: str, ext: str) -> str:
+        """用索引时的同一套解析器读取原文，多页/多 sheet 拼成一段文本"""
+        docs = detect_loader(file_path, ext).load()
+        return "\n\n".join(d.page_content for d in docs)
+
+    async def get_raw(self, doc_id: str) -> tuple[str, str]:
+        """原始文件的磁盘路径 + MIME 类型（前端按格式渲染原文时用）
+
+        和 get_content 是两回事：那条给的是解析后的纯文本（模型看到的内容），
+        这条给的是文件本身。返回路径而不是字节，由路由层用 FileResponse 流式发出去。
+        """
+        async with self._session_factory() as session:
+            row = await session.get(Document, doc_id)
+            if row is None:
+                raise HTTPException(status_code=404, detail=f"文档 '{doc_id}' 不存在")
+            filename, file_type = row.filename, row.file_type
+
+        file_path = os.path.join(settings.UPLOAD_DIR, filename)
+        if not os.path.exists(file_path):
+            raise HTTPException(
+                status_code=410,
+                detail=f"文档 '{filename}' 的原始文件已不在服务器上",
+            )
+
+        return file_path, media_type_for(file_type)
 
     # ==================== 删除 ====================
 

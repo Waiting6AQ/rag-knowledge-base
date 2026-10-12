@@ -36,6 +36,16 @@ class DocumentListResponse(BaseModel):
     documents: list[DocumentInfo]                # 文档摘要列表
 
 
+# ---------- 内容响应 ----------
+class DocumentContentResponse(BaseModel):
+    """文档全文（点开引用来源 / 文档列表时查看）"""
+    doc_id: str                                  # 文档 ID
+    filename: str                                # 文件名
+    file_type: str                               # 文件类型
+    content: str                                 # 正文（超过上限时截断）
+    truncated: bool = False                      # 是否因超长被截断
+
+
 # ---------- 删除响应 ----------
 class DocumentDeleteResponse(BaseModel):
     """删除文档后返回的信息"""

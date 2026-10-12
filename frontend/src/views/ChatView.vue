@@ -31,7 +31,7 @@
         <div class="doc-title">📚 已解析文档（{{ documents.length }}）</div>
         <div class="doc-list">
           <div v-for="d in documents" :key="d.doc_id" class="doc-list-item">
-            <span class="doc-name" :title="d.filename">
+            <span class="doc-name" :title="d.filename" @click="openDoc(d.doc_id, d.filename)">
               {{ d.filename }}<small class="doc-chunks">（{{ d.chunk_count }} 块）</small>
             </span>
             <button class="del" @click="deleteDocument(d.doc_id)" title="删除文档">✕</button>
@@ -87,7 +87,9 @@
                 </svg>
                 引用来源
               </span>
-              <span v-for="s in m.sources" :key="s.index" class="file-tag">{{ s.source }}</span>
+              <span v-for="s in m.sources" :key="s.index" class="file-tag"
+                    :class="{ 'is-clickable': s.doc_id }"
+                    @click="openDoc(s.doc_id, s.source)">{{ s.source }}</span>
             </div>
           </template>
         </MessageItem>
@@ -103,6 +105,12 @@
         <span></span>
       </div>
     </div>
+
+    <!-- 点引用来源 / 文档名 → 弹窗看全文。:key 保证换文档时组件重建，不会串内容 -->
+    <DocumentViewer v-if="viewingDoc" :key="viewingDoc.docId"
+                    :doc-id="viewingDoc.docId" :title="viewingDoc.filename"
+                    :replaced="viewingDoc.replaced"
+                    @close="viewingDoc = null" />
   </div>
 </template>
 
@@ -112,6 +120,7 @@ import { useRouter, useRoute } from 'vue-router'
 import request from '../api/request'
 import MessageItem from '../components/MessageItem.vue'
 import ChatInput from '../components/ChatInput.vue'
+import DocumentViewer from '../components/DocumentViewer.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -129,6 +138,22 @@ const uploadStatus = ref('')
 const chatArea = ref(null)
 const showScrollBtn = ref(false)
 const booting = ref(true)   // 首次加载中：压住空状态，避免它闪一下再被消息替换
+// 正在查看的文档（null = 弹窗关闭）。只存触发时的 docId/文件名，内容由弹窗自己拉
+const viewingDoc = ref(null)
+
+function openDoc(docId, filename) {
+  // 改造前存下的历史来源没有 doc_id，点了不响应（不假装能打开）
+  if (!docId) return
+  // 文档删掉再重传会拿到新的 doc_id（每次上传都是新 uuid），而旧会话里的来源
+  // 还指着已经不存在的那个。按文件名在当前文档列表里回查一次：找到就打开当前版本，
+  // 并让弹窗说明"这不是当时引用的那一版"——同名不等于同内容，不能默默替换
+  const current = documents.value.find((d) => d.filename === filename)
+  viewingDoc.value = {
+    docId: current ? current.doc_id : docId,
+    filename,
+    replaced: !!current && current.doc_id !== docId,
+  }
+}
 
 // 消息的本地唯一键（原先用数组下标做 key，加出现动画会渲染错位）
 let msgSeq = 0

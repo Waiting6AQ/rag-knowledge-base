@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     # === 文件上传限制 ===
     ALLOWED_EXTENSIONS: list[str] = [".txt", ".pdf", ".md", ".docx", ".xlsx"]
     MAX_UPLOAD_SIZE_MB: int = 20
+    # 单次返回的文档正文字符上限（点开查看全文时用）：超出部分截断，并在响应里标记
+    DOC_CONTENT_MAX_CHARS: int = 50000
 
     class Config:
         env_file = str(BASE_DIR / ".env")
