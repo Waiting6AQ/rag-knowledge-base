@@ -34,7 +34,10 @@ qdrant-client>=1.19.0
 langchain-qdrant>=1.1.0
 
 # --- Reranking (Cross-Encoder) ---
-sentence-transformers>=3.0.0
+# 与 Dockerfile 里钉的 torch 版本配套：transformers 5.x 需要较新的 torch，
+# 不钉上界时每次重建都可能拉到不兼容的新版本（torch 2.6 + transformers 5.19 会在导入时崩）
+transformers==5.16.1
+sentence-transformers==6.0.0
 
 # --- Data validation ---
 pydantic>=2.0.0,<3.0.0

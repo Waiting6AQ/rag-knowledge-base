@@ -6,7 +6,7 @@ WORKDIR /app
 # 经依赖拉 CUDA 全家桶（镜像膨胀 2-3GB）。走 PyTorch 官方 CPU 索引（正规 PEP503 源）。
 # 依赖（filelock/sympy 等）从清华 PyPI 解析，故加 --extra-index-url
 COPY requirements.txt .
-RUN pip install --no-cache-dir --timeout 120 --retries 5 torch==2.6.0+cpu \
+RUN pip install --no-cache-dir --timeout 120 --retries 5 torch==2.13.0+cpu \
         --index-url https://download.pytorch.org/whl/cpu \
         --extra-index-url https://pypi.tuna.tsinghua.edu.cn/simple && \
     pip install --no-cache-dir --timeout 60 --retries 5 -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
