@@ -10,7 +10,8 @@ export default defineConfig({
     // 开发代理：前端请求 /api 转发到 Java 后端，避免跨域
     proxy: {
       '/api': {
-        target: 'http://localhost:8081',
+        // 和后端读同一个环境变量：换端口时两边一起变
+        target: `http://localhost:${process.env.SERVER_PORT || 8081}`,
         changeOrigin: true,
       },
     },

@@ -34,7 +34,7 @@
             <span class="doc-name" :title="d.filename" @click="openDoc(d.doc_id, d.filename)">
               {{ d.filename }}<small class="doc-chunks">（{{ d.chunk_count }} 块）</small>
             </span>
-            <button class="del" @click="deleteDocument(d.doc_id)" title="删除文档">✕</button>
+            <button v-if="d.can_delete" class="del" @click="deleteDocument(d.doc_id)" title="删除文档">✕</button>
           </div>
           <div v-if="!documents.length" style="padding:8px 4px;">暂无文档，先上传再提问</div>
         </div>

@@ -46,7 +46,7 @@ public class AuthService {
             throw BusinessException.badRequest("用户名或密码错误");
         }
         Role role = roleMapper.findById(user.getRoleId());
-        String token = jwtUtil.generate(user.getId(), user.getRoleId());
+        String token = jwtUtil.generate(user.getId(), role.getCode());
         return new LoginResponse(token,
                 new LoginResponse.UserInfo(user.getId(), user.getUsername(), role.getCode()));
     }

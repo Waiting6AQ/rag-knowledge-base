@@ -28,12 +28,14 @@ public class JwtUtil {
         this.expireMillis = expireHours * 3600 * 1000;
     }
 
-    /** 签发 token：携带 userId 和 roleId */
-    public String generate(Long userId, Long roleId) {
+    /** 签发 token：携带 userId 和角色码 */
+    public String generate(Long userId, String roleCode) {
         Date now = new Date();
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
-                .claim("roleId", roleId)
+                // 角色码：拦截器判"是不是管理员"要用。不带角色主键——它是代理键，
+                // 光看数字判断不了，还得查库或者把主键写死在代码里
+                .claim("roleCode", roleCode)
                 .setIssuedAt(now)
                 .setExpiration(new Date(now.getTime() + expireMillis))
                 .signWith(key, SignatureAlgorithm.HS256)

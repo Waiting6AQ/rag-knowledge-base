@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
+from core.caller import Caller
 from services import document_service
 from services.document_service import DocumentService
 
@@ -107,6 +108,11 @@ def make_service(store, session) -> DocumentService:
     )
 
 
+def make_caller(user_id: str | None = "1", can_delete_any: bool = False) -> Caller:
+    """调用方身份桩：默认是 1 号普通用户"""
+    return Caller(user_id=user_id, can_delete_any=can_delete_any)
+
+
 def run(coro):
     """在同步测试里执行协程（与 test_file_utils 一致，不引入 pytest-asyncio）"""
     return asyncio.run(coro)
@@ -156,7 +162,7 @@ def test_upload_registers_metadata_in_pg(tmp_path, monkeypatch):
     path = make_txt(tmp_path)
     stub_save_upload(monkeypatch, path, "hash-1")
 
-    resp = run(service.upload(FakeUpload("员工手册.txt")))
+    resp = run(service.upload(FakeUpload("员工手册.txt"), make_caller()))
 
     assert resp.chunk_count == len(store.added_chunks)
     assert resp.renamed is False
@@ -166,6 +172,7 @@ def test_upload_registers_metadata_in_pg(tmp_path, monkeypatch):
     assert row.filename == "员工手册.txt"
     assert row.file_hash == "hash-1"
     assert row.chunk_count == resp.chunk_count
+    assert row.uploaded_by == "1", "上传者必须记下来，删除时要靠它判归属"
     assert session.committed is True
 
 
@@ -178,7 +185,7 @@ def test_duplicate_file_hash_rejected_and_copy_removed(tmp_path, monkeypatch):
     stub_save_upload(monkeypatch, path, "same-hash")
 
     with pytest.raises(HTTPException) as exc:
-        run(service.upload(FakeUpload("dup.txt")))
+        run(service.upload(FakeUpload("dup.txt"), make_caller()))
 
     assert exc.value.status_code == 409
     assert "已存在.txt" in exc.value.detail
@@ -196,7 +203,7 @@ def test_index_failure_triggers_compensation_cleanup(tmp_path, monkeypatch):
     stub_save_upload(monkeypatch, path, "hash-x")
 
     with pytest.raises(HTTPException) as exc:
-        run(service.upload(FakeUpload("bad.txt")))
+        run(service.upload(FakeUpload("bad.txt"), make_caller()))
 
     assert exc.value.status_code == 500
     assert not path.exists(), "失败时应删除已保存的文件"
@@ -211,12 +218,12 @@ def test_delete_removes_vectors_row_and_file(tmp_path, monkeypatch):
     """删除三件套：向量 → 元数据行 → 磁盘文件"""
     store = FakeStore()
     saved = make_txt(tmp_path)
-    row = SimpleNamespace(filename=saved.name, chunk_count=3)
+    row = SimpleNamespace(filename=saved.name, chunk_count=3, uploaded_by="1")
     session = FakeSession(lookup=row)
     service = make_service(store, session)
     monkeypatch.setattr(document_service.settings, "UPLOAD_DIR", str(tmp_path))
 
-    resp = run(service.delete_document("doc-1"))
+    resp = run(service.delete_document("doc-1", make_caller()))
 
     assert resp.doc_id == "doc-1"
     assert resp.chunks_removed == 3
@@ -233,7 +240,49 @@ def test_delete_missing_document_returns_404():
     service = make_service(store, FakeSession(lookup=None))
 
     with pytest.raises(HTTPException) as exc:
-        run(service.delete_document("nope"))
+        run(service.delete_document("nope", make_caller()))
 
     assert exc.value.status_code == 404
     assert store.deleted_doc_id() is None, "文档不存在时不该动向量库"
+
+
+def test_delete_other_users_document_rejected(tmp_path):
+    """别人的文档：403，且不动向量库、不删文件"""
+    store = FakeStore()
+    saved = make_txt(tmp_path)
+    row = SimpleNamespace(filename=saved.name, chunk_count=3, uploaded_by="2")
+    service = make_service(store, FakeSession(lookup=row))
+
+    with pytest.raises(HTTPException) as exc:
+        run(service.delete_document("doc-1", make_caller(user_id="1")))
+
+    assert exc.value.status_code == 403
+    assert store.deleted_doc_id() is None, "被拒绝时不该动向量库"
+    assert saved.exists(), "被拒绝时不该删文件"
+
+
+def test_delete_any_document_allowed_with_capability(tmp_path, monkeypatch):
+    """网关判定可删任意文档（管理员）：不是本人也能删"""
+    store = FakeStore()
+    saved = make_txt(tmp_path)
+    row = SimpleNamespace(filename=saved.name, chunk_count=3, uploaded_by="2")
+    service = make_service(store, FakeSession(lookup=row))
+    monkeypatch.setattr(document_service.settings, "UPLOAD_DIR", str(tmp_path))
+
+    resp = run(service.delete_document("doc-1", make_caller(user_id="9", can_delete_any=True)))
+
+    assert resp.doc_id == "doc-1"
+    assert store.deleted_doc_id() == "doc-1"
+    assert not saved.exists()
+
+
+def test_delete_without_identity_rejected():
+    """没有网关注入的身份：403（无从比对归属，不能放行）"""
+    store = FakeStore()
+    service = make_service(store, FakeSession())
+
+    with pytest.raises(HTTPException) as exc:
+        run(service.delete_document("doc-1", make_caller(user_id=None)))
+
+    assert exc.value.status_code == 403
+    assert store.deleted_doc_id() is None

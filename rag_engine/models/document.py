@@ -28,6 +28,7 @@ class DocumentInfo(BaseModel):
     file_type: str                               # 文件类型
     chunk_count: int                             # 文本块数量
     upload_time: str                             # 上传时间（ISO 格式字符串）
+    uploaded_by: str                             # 上传者 ID
 
 
 class DocumentListResponse(BaseModel):

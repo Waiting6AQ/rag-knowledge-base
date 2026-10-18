@@ -40,7 +40,9 @@ spring:
       thread-name-prefix: sse-
 
 server:
-  port: 8081
+  # 端口可配：Windows 上 8081 可能落在 Hyper-V/Docker 的动态预留段里（绑定会报"已被占用"），
+  # 冲突时设环境变量 SERVER_PORT 换一个即可，前端代理读同一个变量
+  port: ${SERVER_PORT:8081}
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml

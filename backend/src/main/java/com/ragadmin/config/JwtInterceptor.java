@@ -15,14 +15,14 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * JWT 拦截器：校验 Authorization: Bearer <token>
- * 通过后把 userId / roleId 放入 request 属性，Controller 直接取
+ * 通过后把 userId / roleCode 放入 request 属性，Controller 直接取
  */
 @Component
 @RequiredArgsConstructor
 public class JwtInterceptor implements HandlerInterceptor {
 
     public static final String ATTR_USER_ID = "userId";
-    public static final String ATTR_ROLE_ID = "roleId";
+    public static final String ATTR_ROLE_CODE = "roleCode";
 
     private final JwtUtil jwtUtil;
     private final ObjectMapper objectMapper;
@@ -40,7 +40,8 @@ public class JwtInterceptor implements HandlerInterceptor {
         try {
             Claims claims = jwtUtil.parse(auth.substring(7));
             request.setAttribute(ATTR_USER_ID, Long.valueOf(claims.getSubject()));
-            request.setAttribute(ATTR_ROLE_ID, claims.get("roleId", Long.class));
+            // 改造前签发的 token 里没有这枚 claim，取出来是 null（Caller 会当普通用户处理）
+            request.setAttribute(ATTR_ROLE_CODE, claims.get("roleCode", String.class));
             return true;
         } catch (Exception e) {
             return reject(response, 401, "token 无效或已过期");

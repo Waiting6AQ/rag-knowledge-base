@@ -22,21 +22,21 @@ class JwtUtilTest {
     private final JwtUtil jwtUtil = new JwtUtil(SECRET, 1);
 
     @Test
-    @DisplayName("签发后解析回环：subject = userId，roleId 保留")
+    @DisplayName("签发后解析回环：subject = userId，roleCode 保留")
     void generateThenParse() {
-        String token = jwtUtil.generate(42L, 2L);
+        String token = jwtUtil.generate(42L, "ADMIN");
 
         Claims claims = jwtUtil.parse(token);
 
         assertThat(claims.getSubject()).isEqualTo("42");
-        assertThat(((Number) claims.get("roleId")).longValue()).isEqualTo(2L);
+        assertThat(claims.get("roleCode", String.class)).isEqualTo("ADMIN");
     }
 
     @Test
     @DisplayName("过期 token 被拒绝（expire-hours 取负数模拟已过期）")
     void expiredTokenIsRejected() {
         JwtUtil expired = new JwtUtil(SECRET, -1);
-        String token = expired.generate(1L, 1L);
+        String token = expired.generate(1L, "USER");
 
         assertThatThrownBy(() -> expired.parse(token))
                 .isInstanceOf(ExpiredJwtException.class);
@@ -45,7 +45,7 @@ class JwtUtilTest {
     @Test
     @DisplayName("用其它密钥签发的 token（伪造）被拒绝")
     void tokenSignedWithAnotherKeyIsRejected() {
-        String forged = new JwtUtil(OTHER_SECRET, 1).generate(1L, 1L);
+        String forged = new JwtUtil(OTHER_SECRET, 1).generate(1L, "USER");
 
         assertThatThrownBy(() -> jwtUtil.parse(forged))
                 .isInstanceOf(JwtException.class);

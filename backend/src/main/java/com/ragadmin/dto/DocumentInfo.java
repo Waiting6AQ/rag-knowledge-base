@@ -20,4 +20,12 @@ public class DocumentInfo {
 
     @JsonProperty("upload_time")
     private String uploadTime;
+
+    /** 上传者 ID（改造前上传的文档没有这个值） */
+    @JsonProperty("uploaded_by")
+    private String uploadedBy;
+
+    /** 当前用户能否删除：本人上传的，或自己是管理员。由后端算好，前端只管显示 */
+    @JsonProperty("can_delete")
+    private Boolean canDelete;
 }

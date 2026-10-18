@@ -57,6 +57,9 @@ class Document(Base):
     uploaded_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+    # 上传者 ID，由 Java 网关注入（引擎没有用户体系，users 表在 MySQL 那边，建不了外键）
+    # 非空：每份文档都有归属，删文档时据此判断"是不是本人"
+    uploaded_by: Mapped[str] = mapped_column(Text, nullable=False)
 
     # 列表页按上传时间倒序（同 Conversation：btree 可反向扫描，无需 DESC 索引）
     __table_args__ = (Index("documents_uploaded_at_idx", "uploaded_at"),)

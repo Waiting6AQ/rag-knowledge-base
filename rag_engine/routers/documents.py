@@ -6,6 +6,7 @@
 """
 from fastapi import APIRouter, File, UploadFile, Depends
 from fastapi.responses import FileResponse
+from core.caller import Caller, get_caller
 from core.dependencies import get_document_service
 from models.document import (
     DocumentUploadResponse,
@@ -27,9 +28,10 @@ router = APIRouter()
 )
 async def upload(
     file: UploadFile = File(...),
+    caller: Caller = Depends(get_caller),
     service: DocumentService = Depends(get_document_service),
 ) -> DocumentUploadResponse:
-    return await service.upload(file)
+    return await service.upload(file, caller)
 
 
 @router.get(
@@ -80,7 +82,8 @@ async def get_raw(
 )
 async def delete(
     doc_id: str,
+    caller: Caller = Depends(get_caller),
     service: DocumentService = Depends(get_document_service),
 ) -> DocumentDeleteResponse:
     # 内部的向量删除是同步的，由 service 自己丢线程池
-    return await service.delete_document(doc_id)
+    return await service.delete_document(doc_id, caller)

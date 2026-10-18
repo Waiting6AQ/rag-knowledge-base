@@ -1,8 +1,8 @@
 # 生产部署版（独立完整文件）：从 ACR 拉预构建镜像运行，服务器无需源码与 Dockerfile
 # 用法：服务器上放本文件 + .env（密钥），执行 docker compose -f docker-compose.prod.yml up -d
 # 与开发版 docker-compose.yml 的差异：
-#   1. build → image（镜像已推到阿里云 ACR）
-#   2. backend 不映射宿主端口：对外只有前端 80 一个口（浏览器经 nginx 内网代理访问后端）
+#   1. build → image（镜像已推到阿里云 ACR，服务器无需源码）
+#   2. 前端映射 80（开发版默认 8080，可用 FRONTEND_PORT 覆盖）
 #   3. 所有服务 restart: unless-stopped（服务器重启/崩溃自动拉起）
 # 可选：.env 里设 REGISTRY 覆盖镜像域名（服务器与 ACR 同地域时走内网 crpi-xxx-vpc...）
 services:

@@ -18,6 +18,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+from core.caller import Caller
 from core.config import settings
 from core.qdrant import DOC_ID_FIELD
 from utils.file_utils import (
@@ -53,8 +54,11 @@ class DocumentService:
 
     # ==================== 上传 ====================
 
-    async def upload(self, file: UploadFile) -> DocumentUploadResponse:
+    async def upload(self, file: UploadFile, caller: Caller) -> DocumentUploadResponse:
         """处理上传文件：验证 → 流式保存(哈希+大小) → 查重 → 线程池索引 → 登记元数据"""
+        # 归属先取：缺身份就没法记归属，也没必要先把文件落盘再报错
+        uploaded_by = self._require_identity(caller)
+
         # 1. 验证文件类型
         ext = validate_extension(file.filename, settings.ALLOWED_EXTENSIONS)
 
@@ -98,6 +102,7 @@ class DocumentService:
                     file_hash=file_hash,
                     file_type=ext,
                     chunk_count=chunk_count,
+                    uploaded_by=uploaded_by,
                 ))
                 await session.commit()
         except HTTPException:
@@ -188,6 +193,7 @@ class DocumentService:
                     file_type=r.file_type,
                     chunk_count=r.chunk_count,
                     upload_time=r.uploaded_at.isoformat(),
+                    uploaded_by=r.uploaded_by,
                 )
                 for r in rows
             ],
@@ -255,7 +261,7 @@ class DocumentService:
 
     # ==================== 删除 ====================
 
-    async def delete_document(self, doc_id: str) -> DocumentDeleteResponse:
+    async def delete_document(self, doc_id: str, caller: Caller) -> DocumentDeleteResponse:
         """删除文档：向量 → 元数据行 → 原始文件
 
         顺序是先删向量、再删元数据行。万一中间失败，元数据行还在，
@@ -263,10 +269,15 @@ class DocumentService:
         反过来先删行的话，向量删失败就再也没有重试入口了，而残留的向量
         还会被检索到——删了的内容还能被答出来，比列表里多一行严重得多。
         """
+        caller_id = self._require_identity(caller)
+
         async with self._session_factory() as session:
             row = await session.get(Document, doc_id)
             if row is None:
                 raise HTTPException(status_code=404, detail=f"文档 '{doc_id}' 不存在")
+            # 本人上传的，或网关判定可删任意文档的（角色语义在网关那层解释）
+            if not caller.can_delete_any and row.uploaded_by != caller_id:
+                raise HTTPException(status_code=403, detail="只能删除自己上传的文档")
             filename = row.filename
             chunk_count = row.chunk_count
 
@@ -287,3 +298,17 @@ class DocumentService:
             doc_id=doc_id,
             chunks_removed=chunk_count,
         )
+
+    # ==================== 内部辅助 ====================
+
+    @staticmethod
+    def _require_identity(caller: Caller) -> str:
+        """取调用方 ID，缺失即拒绝
+
+        上传要记归属、删除要比对归属，缺了它两条路都走不通。这不是认证
+        （认证在网关），是为了让"网关漏传身份"这种故障立刻暴露，
+        而不是悄悄存出一条无主文档
+        """
+        if caller.user_id is None:
+            raise HTTPException(status_code=403, detail="缺少调用方身份")
+        return caller.user_id

@@ -1,10 +1,13 @@
 package com.ragadmin.controller;
 
+import com.ragadmin.common.Caller;
 import com.ragadmin.common.Result;
+import com.ragadmin.config.JwtInterceptor;
 import com.ragadmin.dto.DocumentContentResponse;
 import com.ragadmin.dto.DocumentListResponse;
 import com.ragadmin.dto.DocumentUploadResponse;
 import com.ragadmin.service.DocumentService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -25,13 +28,14 @@ public class DocumentController {
     private final DocumentService documentService;
 
     @GetMapping
-    public Result<DocumentListResponse> list() {
-        return Result.ok(documentService.list());
+    public Result<DocumentListResponse> list(HttpServletRequest request) {
+        return Result.ok(documentService.list(caller(request)));
     }
 
     @PostMapping("/upload")
-    public Result<DocumentUploadResponse> upload(@RequestParam("file") MultipartFile file) {
-        return Result.ok(documentService.upload(file));
+    public Result<DocumentUploadResponse> upload(HttpServletRequest request,
+                                                 @RequestParam("file") MultipartFile file) {
+        return Result.ok(documentService.upload(file, caller(request)));
     }
 
     @GetMapping("/{docId}/content")
@@ -46,8 +50,15 @@ public class DocumentController {
     }
 
     @DeleteMapping("/{docId}")
-    public Result<Void> delete(@PathVariable String docId) {
-        documentService.delete(docId);
+    public Result<Void> delete(HttpServletRequest request, @PathVariable String docId) {
+        documentService.delete(docId, caller(request));
         return Result.ok();
+    }
+
+    /** 当前登录者（拦截器已把身份解好放在 request 上） */
+    private Caller caller(HttpServletRequest request) {
+        return new Caller(
+                (Long) request.getAttribute(JwtInterceptor.ATTR_USER_ID),
+                (String) request.getAttribute(JwtInterceptor.ATTR_ROLE_CODE));
     }
 }

@@ -1,6 +1,6 @@
 # RAG 知识库问答系统
 
-前后端分离的知识库问答系统：Spring Boot 业务后端（JWT 鉴权 + 会话管理 + 文档管理 + AI 转发）+ Vue 3 前端 + Python RAG 引擎。Java 作为唯一对外出口，通过 SSE 透传实现 Token 级打字机效果。
+前后端分离的知识库问答系统：Spring Boot 业务后端（JWT 鉴权 + 会话管理 + 文档管理 + AI 转发）+ Vue 3 前端 + Python RAG 引擎。Java 作为唯一的 API 网关，通过 SSE 透传实现 Token 级打字机效果。
 
 ## 特性
 
@@ -155,9 +155,9 @@ docker compose up -d --build
 docker compose logs -f backend    # 看到"已创建默认管理员账号 admin"即就绪
 ```
 
-访问 `http://localhost:8080`（nginx 托管前端 + 代理 /api，无跨域）；后端 API 也可直连 `http://localhost:8081`。
+访问 `http://localhost:8080`（nginx 托管前端 + 代理 /api，无跨域）。只有这一个端口对外开放，后端与引擎都只在内网；需要直连 API 调试时用 `docker compose exec frontend curl backend:8081/api/...`。
 
-- **架构落地**：mysql/postgres/qdrant/engine 都不暴露宿主端口（"Python 不出内网"在部署层生效），容器间用服务名互访
+- **架构落地**：只有前端 nginx 暴露宿主端口；backend 与 mysql/postgres/qdrant/engine 都只在内网（"Python 不出内网"在部署层生效），容器间用服务名互访
 - **数据**：账号/会话/消息在 mysql 卷；引擎上传的原始文档与 reranker 模型缓存在 engine-data / engine-cache 卷；会话状态与文档元数据在 pg-data 卷；向量在 qdrant-data 卷——`down` 全部保留，`down -v` 才清空；首次问答若需下载重排模型会稍慢，之后不再重复下载
 - **结束**：`docker compose stop`（保留现场，下次秒开）或 `docker compose down`
 
@@ -175,7 +175,7 @@ docker push crpi-<实例id>.aliyuncs.com/<命名空间>/rag-backend:latest
 docker compose -f docker-compose.prod.yml up -d   # 自动拉取镜像并启动
 ```
 
-与本地版 `docker-compose.yml` 的差异：`build` → `image`（服务器无需源码即可部署）；backend 不暴露宿主端口（对外只有前端一个口）；所有服务 `restart: unless-stopped`；镜像地址可用 `.env` 的 `REGISTRY` 变量覆盖（服务器与仓库同地域时走内网拉取更快）。
+与本地版 `docker-compose.yml` 的差异：`build` → `image`（服务器无需源码即可部署）；前端映射 80（开发版默认 8080，可用 `FRONTEND_PORT` 覆盖）；所有服务 `restart: unless-stopped`；镜像地址可用 `.env` 的 `REGISTRY` 变量覆盖（服务器与仓库同地域时走内网拉取更快）。
 
 > 安全提示：默认账号 `admin/admin123` 与 JWT_SECRET 兜底值仅用于本地/演示环境；公网暴露前必须在服务器 `.env` 设置强 `JWT_SECRET` 并修改管理员密码。`.env` 含密钥，切勿提交到仓库或上传公开位置。
 
