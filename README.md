@@ -5,12 +5,14 @@
 ## 特性
 
 - **Java 业务系统 + Python AI 服务（服务化架构）**：Java 网关统一对外（鉴权/审计/转发），Python 引擎作为独立部署的内部能力层，通过 HTTP 契约集成
-- **JWT 无状态认证**：jjwt 签发/校验 + BCrypt 密码哈希，简化 RBAC（user/role 两张表），拦截器统一鉴权
+- **JWT 无状态认证**：jjwt 签发/校验 + BCrypt 密码哈希，简化 RBAC（user/role 两张表），拦截器统一鉴权，`@RequireAdmin` 标注管理员接口
 - **会话归属隔离**：业务侧自持会话记录（chat_session + chat_message），用户只能看到自己的会话，列表/详情/删除/聊天全链路校验
-- **用户归属在业务侧，AI 引擎不感知用户**：user_id ↔ conversation_id 映射存于业务 MySQL；引擎仅按 conversation_id 维护多轮上下文（checkpoint，会话级状态，无用户体系）；转发时网关注入 `X-User-Id` 可信头，预留数据隔离/审计
+- **身份与归属**：会话归属在业务 MySQL（user_id ↔ conversation_id），引擎仅按 conversation_id 维护多轮上下文（checkpoint，会话级状态，无用户体系）；文档的 `uploaded_by` 随文档存在引擎，但只是一个不透明 ID——引擎没有用户表、也不解释角色，删除时靠网关传入的 `X-User-Id` / `X-Can-Delete-Any` 判断"本人或管理员"
 - **SSE 流式透传**：Spring 用 `StreamingResponseBody` + `RestClient` 对引擎 SSE 流做逐行原样透传（只劫持 done 事件附加 session_id），前端逐 token 打字机效果 + 实时进度 + 引用来源即时展示
 - **引用来源落库**：每轮回答的引用来源 JSON 随消息存入业务库，历史会话回看仍显示来源标签（引擎侧不保留）
 - **文档管理**：Java 接收上传（校验扩展名/大小）→ 转发引擎解析（SHA256 去重），列表/删除代理引擎 API，文档生命周期与账号体系统一走网关
+- **文档权限**：登录用户都能上传；删除限"本人上传的"或管理员，列表返回 `can_delete` 供前端显隐按钮
+- **后台管理**：管理员可查看用户、删除账号（级联清会话、消息与引擎侧对话；不能删自己）
 - **容错降级**：AI 服务超时/不可达返回友好提示而非 500；客户端断连静默处理；全局异常统一 `Result` 结构
 - **AI 引擎完整能力**：6 节点 LangGraph 管线、混合检索/精排等，见下方「AI 引擎核心链路」（引擎内部细节见 `rag_engine/README.md`）
 
@@ -44,9 +46,10 @@ rag_system/
 Spring Boot 业务后端 (:8081)
     ├─ 用户体系：注册/登录/角色（user + role）
     ├─ 会话管理：chat_session + chat_message（业务侧审计记录，含引用来源）
-    ├─ 文档管理：/api/documents（上传/列表/删除，转发引擎）
+    ├─ 文档管理：/api/documents（上传/列表/删除/查看全文，转发引擎）
+    ├─ 后台管理：/api/users（用户列表 / 删除，限管理员）
     ├─ 转发：/api/chat（非流式）、/api/chat/stream（SSE 透传）
-    │      │  内部 HTTP（X-User-Id 可信头）
+    │      │  内部 HTTP（X-User-Id / X-Can-Delete-Any）
     │      ▼
     Python RAG 引擎 (:8000)
     │  LangGraph：分析问题 → 检索文档 → 生成回答（混合检索 + 精排）
@@ -138,7 +141,11 @@ npm run dev
 | DELETE | /api/sessions/{id}     | 删除会话（级联删消息）          |
 | GET    | /api/documents         | 文档列表（来自引擎）            |
 | POST   | /api/documents/upload  | 上传文档（multipart，转发引擎） |
-| DELETE | /api/documents/{docId} | 删除文档（级联清索引）          |
+| GET    | /api/documents/{docId}/content | 文档全文（点引用来源时查看） |
+| GET    | /api/documents/{docId}/raw     | 原始文件字节（pdf/docx/xlsx 渲染） |
+| DELETE | /api/documents/{docId} | 删除文档（本人或管理员）        |
+| GET    | /api/users             | 用户列表（仅管理员）            |
+| DELETE | /api/users/{id}        | 删除用户（仅管理员，级联清会话） |
 | POST   | /api/chat              | 聊天（非流式，落库）            |
 | POST   | /api/chat/stream       | 聊天（SSE 流式，打字机效果）    |
 
@@ -188,9 +195,9 @@ docker compose -f docker-compose.prod.yml up -d   # 自动拉取镜像并启动
 #   覆盖：JWT 签发/过期/伪造签名、会话归属校验（防越权）、落库内容与标题规则
 cd backend && .\mvnw.cmd test
 
-# AI 引擎：pytest（24 个用例）
+# AI 引擎：pytest（27 个用例）
 #   覆盖：文件类型/大小校验、SHA256 去重、索引失败补偿清理、删除顺序与过滤条件、
-#         中文 BM25 分词与 TF 长度归一化、chunk 来源注入
+#         文档归属校验（本人/管理员）、中文 BM25 分词与 TF 长度归一化、chunk 来源注入
 cd rag_engine
 pip install -r requirements-dev.txt          # 仅测试依赖，不进生产镜像
 python -m pytest tests -q

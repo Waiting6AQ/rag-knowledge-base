@@ -55,6 +55,21 @@ public class AuthService {
         return userMapper.findById(id);
     }
 
+    /** 修改密码：先验旧密码，再存新密码的 BCrypt 哈希 */
+    public void changePassword(Long userId, String oldPassword, String newPassword) {
+        User user = userMapper.findById(userId);
+        if (user == null) {
+            throw BusinessException.badRequest("用户不存在");
+        }
+        if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
+            throw BusinessException.badRequest("当前密码不正确");
+        }
+        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+            throw BusinessException.badRequest("新密码不能与当前密码相同");
+        }
+        userMapper.updatePassword(userId, passwordEncoder.encode(newPassword));
+    }
+
     /** 启动时预置管理员：admin / admin123（仅首次创建） */
     @PostConstruct
     public void ensureAdmin() {

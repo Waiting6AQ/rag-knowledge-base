@@ -197,12 +197,16 @@ python main.py
 | -------- | ---------------------------- | ------------------------------------ |
 | `POST`   | `/api/v1/documents/upload`   | 上传文档 (.txt/.pdf/.md/.docx/.xlsx) |
 | `GET`    | `/api/v1/documents/`         | 列出已索引文档（读 PG）              |
+| `GET`    | `/api/v1/documents/{id}/content` | 读取文档全文（解析后的正文）      |
+| `GET`    | `/api/v1/documents/{id}/raw` | 读取原始文件（前端按格式渲染）       |
 | `DELETE` | `/api/v1/documents/{id}`     | 删除文档（向量 → 元数据 → 原始文件） |
 | `POST`   | `/api/v1/chat`               | 非流式 RAG 问答                      |
 | `POST`   | `/api/v1/chat/stream`        | 流式 RAG 问答 (SSE)                  |
 | `GET`    | `/api/v1/conversations/`     | 对话列表                             |
 | `GET`    | `/api/v1/conversations/{id}` | 对话详情（含来源）                   |
 | `DELETE` | `/api/v1/conversations/{id}` | 删除对话                             |
+
+> 文档的归属校验靠网关传入的 `X-User-Id` / `X-Can-Delete-Any`；引擎不做认证。
 
 ### Docker
 

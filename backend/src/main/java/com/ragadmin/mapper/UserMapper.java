@@ -5,7 +5,9 @@ import com.ragadmin.model.User;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Options;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 
@@ -32,6 +34,9 @@ public interface UserMapper {
 
     @Delete("DELETE FROM user WHERE id = #{id}")
     int deleteById(Long id);
+
+    @Update("UPDATE user SET password_hash = #{passwordHash} WHERE id = #{id}")
+    int updatePassword(@Param("id") Long id, @Param("passwordHash") String passwordHash);
 
     @Insert("INSERT INTO user (username, password_hash, role_id) VALUES (#{username}, #{passwordHash}, #{roleId})")
     @Options(useGeneratedKeys = true, keyProperty = "id")

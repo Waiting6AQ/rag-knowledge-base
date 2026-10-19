@@ -9,7 +9,7 @@
 
       <div class="conv-list">
         <div class="conv-item" :class="{ active: !currentSessionId }" @click="newChat()" style="font-weight:600;">
-          <span class="title">💬 新对话</span>
+          <span class="title"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>新对话</span>
         </div>
         <div v-for="s in sessions" :key="s.id" class="conv-item"
              :class="{ active: sameId(s.id, currentSessionId) }" @click="switchChat(s.id)">
@@ -20,7 +20,7 @@
 
       <div class="upload-area">
         <label for="file-upload">
-          <div class="upload-title"><span style="font-size:18px;">📁</span> 上传知识库文档</div>
+          <div class="upload-title"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>上传知识库文档</div>
           <small>支持 .txt / .pdf / .md / .docx / .xlsx</small>
         </label>
         <input type="file" id="file-upload" accept=".txt,.pdf,.md,.docx,.xlsx" multiple @change="uploadFiles" />
@@ -28,7 +28,7 @@
       </div>
 
       <div class="doc-section">
-        <div class="doc-title">📚 已解析文档（{{ documents.length }}）</div>
+        <div class="doc-title"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>已解析文档（{{ documents.length }}）</div>
         <div class="doc-list">
           <div v-for="d in documents" :key="d.doc_id" class="doc-list-item">
             <span class="doc-name" :title="d.filename" @click="openDoc(d.doc_id, d.filename)">
@@ -40,9 +40,8 @@
         </div>
       </div>
 
-      <div class="sidebar-footer">
-        <button v-if="isAdmin" @click="router.push('/admin')">⚙️ 后台管理</button>
-        <button @click="logout()">🚪 退出登录</button>
+      <div v-if="isAdmin" class="sidebar-footer">
+        <button @click="router.push('/admin')"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>后台管理</button>
       </div>
     </div>
 
@@ -54,9 +53,26 @@
           <h3>RAG 知识库问答系统</h3>
           <span>知识库 · {{ documents.length }} 份文档</span>
         </div>
-        <div class="topbar-user" :title="isAdmin ? '管理员' : '普通用户'">
-          👤 {{ username }}
-          <span v-if="isAdmin" class="user-role">管理员</span>
+        <div class="topbar-user" ref="userMenuRef">
+          <button class="user-trigger" @click.stop="userMenuOpen = !userMenuOpen">
+            👤 {{ username }}
+            <span v-if="isAdmin" class="user-role">管理员</span>
+            <span class="caret">▾</span>
+          </button>
+          <div v-if="userMenuOpen" class="user-menu">
+            <button @click="openPassword()">修改密码</button>
+            <button class="is-danger" @click="deleteAccount()">注销账号</button>
+            <div class="menu-sep"></div>
+            <button @click="logout()">
+              <!-- 电源图标（内联 SVG，不引图标库；线宽随 currentColor 变化） -->
+              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
+                <line x1="12" y1="2" x2="12" y2="12" />
+              </svg>
+              退出登录
+            </button>
+          </div>
         </div>
       </div>
 
@@ -116,22 +132,62 @@
                     :doc-id="viewingDoc.docId" :title="viewingDoc.filename"
                     :replaced="viewingDoc.replaced"
                     @close="viewingDoc = null" />
+
+    <ChangePasswordModal v-if="showPassword"
+                         @close="showPassword = false"
+                         @done="onPasswordChanged" />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import request from '../api/request'
 import MessageItem from '../components/MessageItem.vue'
 import ChatInput from '../components/ChatInput.vue'
 import DocumentViewer from '../components/DocumentViewer.vue'
+import ChangePasswordModal from '../components/ChangePasswordModal.vue'
 
 const router = useRouter()
 const route = useRoute()
 // 顶栏显示当前账号，多账号测试时不用猜自己登的是谁
 const username = localStorage.getItem('username') || ''
 const isAdmin = localStorage.getItem('roleCode') === 'ADMIN'
+
+// 账号菜单：修改密码 / 注销
+const userMenuOpen = ref(false)
+const userMenuRef = ref(null)
+const showPassword = ref(false)
+
+function openPassword() {
+  userMenuOpen.value = false
+  showPassword.value = true
+}
+
+async function deleteAccount() {
+  userMenuOpen.value = false
+  if (!confirm('确定注销账号？你的全部会话和消息会被永久删除。')) return
+  try {
+    await request.delete('/users/me')
+    alert('账号已注销')
+    logout()
+  } catch (e) {
+    alert('注销失败: ' + (e.response?.data?.message || e.message))
+  }
+}
+
+function onPasswordChanged() {
+  showPassword.value = false
+  alert('密码已修改，请重新登录')
+  logout()
+}
+
+/** 点菜单外面收起账号菜单 */
+function onDocumentClick(e) {
+  if (userMenuOpen.value && userMenuRef.value && !userMenuRef.value.contains(e.target)) {
+    userMenuOpen.value = false
+  }
+}
 
 const sessions = ref([])
 const messages = ref([])
@@ -417,6 +473,7 @@ async function send() {
 }
 
 onMounted(async () => {
+  document.addEventListener('click', onDocumentClick)
   await loadSessions()
   loadDocuments()   // 文档列表不阻塞主流程
   // 地址栏里带了会话 id（刷新 / 直接粘贴链接）就恢复它，否则开新会话
@@ -424,5 +481,9 @@ onMounted(async () => {
   if (id) await switchChat(id)
   else newChat()
   booting.value = false
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocumentClick)
 })
 </script>

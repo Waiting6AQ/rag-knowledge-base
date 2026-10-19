@@ -36,4 +36,12 @@ public class UserController {
         userService.delete(currentUserId, id);
         return Result.ok();
     }
+
+    /** 注销自己的账号：任何登录用户都能调，所以不标 @RequireAdmin */
+    @DeleteMapping("/me")
+    public Result<Void> deleteMe(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute(JwtInterceptor.ATTR_USER_ID);
+        userService.deleteSelf(userId);
+        return Result.ok();
+    }
 }
