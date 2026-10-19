@@ -50,6 +50,8 @@ async function submit() {
     if (mode.value === 'login') {
       localStorage.setItem('token', resp.data.data.token)
       localStorage.setItem('username', username.value)
+      localStorage.setItem('roleCode', resp.data.data.user?.roleCode || '')
+      localStorage.setItem('userId', resp.data.data.user?.id ?? '')
       router.push('/chat')
     } else {
       mode.value = 'login'

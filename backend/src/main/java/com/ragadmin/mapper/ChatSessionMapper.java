@@ -19,6 +19,10 @@ public interface ChatSessionMapper {
     @Select("SELECT * FROM chat_session WHERE id = #{id}")
     ChatSession findById(Long id);
 
+    /** 删除用户时用：取出该用户的全部会话，逐个清理消息和引擎侧对话 */
+    @Select("SELECT * FROM chat_session WHERE user_id = #{userId}")
+    List<ChatSession> findByUserId(Long userId);
+
     @Insert("INSERT INTO chat_session (user_id, conversation_id, title) VALUES (#{userId}, #{conversationId}, #{title})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(ChatSession session);

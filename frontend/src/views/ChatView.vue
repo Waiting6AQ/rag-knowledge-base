@@ -41,6 +41,7 @@
       </div>
 
       <div class="sidebar-footer">
+        <button v-if="isAdmin" @click="router.push('/admin')">⚙️ 后台管理</button>
         <button @click="logout()">🚪 退出登录</button>
       </div>
     </div>
@@ -52,6 +53,10 @@
         <div class="agent-info">
           <h3>RAG 知识库问答系统</h3>
           <span>知识库 · {{ documents.length }} 份文档</span>
+        </div>
+        <div class="topbar-user" :title="isAdmin ? '管理员' : '普通用户'">
+          👤 {{ username }}
+          <span v-if="isAdmin" class="user-role">管理员</span>
         </div>
       </div>
 
@@ -124,6 +129,9 @@ import DocumentViewer from '../components/DocumentViewer.vue'
 
 const router = useRouter()
 const route = useRoute()
+// 顶栏显示当前账号，多账号测试时不用猜自己登的是谁
+const username = localStorage.getItem('username') || ''
+const isAdmin = localStorage.getItem('roleCode') === 'ADMIN'
 
 const sessions = ref([])
 const messages = ref([])
@@ -299,6 +307,9 @@ async function deleteDocument(docId) {
 
 function logout() {
   localStorage.removeItem('token')
+  localStorage.removeItem('username')
+  localStorage.removeItem('roleCode')
+  localStorage.removeItem('userId')
   router.push('/login')
 }
 

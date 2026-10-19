@@ -1,9 +1,13 @@
 package com.ragadmin.mapper;
 
+import com.ragadmin.dto.UserInfo;
 import com.ragadmin.model.User;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Select;
+
+import java.util.List;
 
 /**
  * 用户表 Mapper
@@ -17,6 +21,17 @@ public interface UserMapper {
 
     @Select("SELECT * FROM user WHERE username = #{username}")
     User findByUsername(String username);
+
+    /** 管理页列表：联 role 表带出角色码（map-underscore-to-camel-case 负责 role_code → roleCode） */
+    @Select("""
+            SELECT u.id, u.username, r.code AS role_code, u.created_at
+            FROM user u JOIN role r ON r.id = u.role_id
+            ORDER BY u.id
+            """)
+    List<UserInfo> findAllWithRole();
+
+    @Delete("DELETE FROM user WHERE id = #{id}")
+    int deleteById(Long id);
 
     @Insert("INSERT INTO user (username, password_hash, role_id) VALUES (#{username}, #{passwordHash}, #{roleId})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
