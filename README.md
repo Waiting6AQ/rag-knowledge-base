@@ -14,6 +14,7 @@
 - **文档权限**：登录用户都能上传；删除限"本人上传的"或管理员，列表返回 `can_delete` 供前端显隐按钮
 - **后台管理**：管理员可查看用户、删除账号（级联清会话、消息与引擎侧对话；不能删自己）
 - **容错降级**：AI 服务超时/不可达返回友好提示而非 500；客户端断连静默处理；全局异常统一 `Result` 结构
+- **两级限流**：网关令牌桶（每用户 3 QPS / 全局 30 QPS）+ 信号量（每用户 1 / 全局 8），引擎侧再设并发闸门（聊天 8 / 上传 2）；超限返回 429 JSON，流式请求在开始前拒绝、结束后精确释放许可
 - **AI 引擎完整能力**：6 节点 LangGraph 管线、混合检索/精排等，见下方「AI 引擎核心链路」（引擎内部细节见 `rag_engine/README.md`）
 
 ## 技术栈
@@ -48,11 +49,13 @@ Spring Boot 业务后端 (:8081)
     ├─ 会话管理：chat_session + chat_message（业务侧审计记录，含引用来源）
     ├─ 文档管理：/api/documents（上传/列表/删除/查看全文，转发引擎）
     ├─ 后台管理：/api/users（用户列表 / 删除，限管理员）
+    ├─ 限流：令牌桶（每用户 / 全局 QPS）+ 信号量（每用户 / 全局并发），超限 429
     ├─ 转发：/api/chat（非流式）、/api/chat/stream（SSE 透传）
     │      │  内部 HTTP（X-User-Id / X-Can-Delete-Any）
     │      ▼
     Python RAG 引擎 (:8000)
     │  LangGraph：分析问题 → 检索文档 → 生成回答（混合检索 + 精排）
+    │  并发闸门：聊天 8 / 上传 2（保护事件循环、线程池与 LLM 配额）
     ▼
 Qdrant（向量）+ PostgreSQL（checkpoint 多轮上下文 / 文档与对话元数据）
 ```
@@ -149,6 +152,8 @@ npm run dev
 | POST   | /api/chat              | 聊天（非流式，落库）            |
 | POST   | /api/chat/stream       | 聊天（SSE 流式，打字机效果）    |
 
+> 限流语义：超过阈值时聊天接口返回 `429` + `{"code":429,"message":"..."}`。流式接口只在**流开始前**返回 HTTP 错误；流开始后的异常以 SSE `event: error` 发送（此时状态码已是 200，无法再改）。
+
 ## Docker 部署（可选）
 
 一条命令启动完整系统（MySQL + PostgreSQL + 引擎 + Java 后端 + 前端），无需本地安装 Python/Node/JDK：
@@ -191,17 +196,44 @@ docker compose -f docker-compose.prod.yml up -d   # 自动拉取镜像并启动
 单元测试聚焦**安全边界与易错分支**（不追求覆盖率），全部用 mock / fake 隔离外部依赖，不依赖数据库、网络与真实向量库，可秒级跑完。
 
 ```bash
-# 业务后端：JUnit 5 + Mockito（11 个用例）
-#   覆盖：JWT 签发/过期/伪造签名、会话归属校验（防越权）、落库内容与标题规则
+# 业务后端：JUnit 5 + Mockito（19 个用例）
+#   覆盖：JWT 签发/过期/伪造签名、会话归属校验（防越权）、落库内容与标题规则、
+#         令牌桶突发/补充/容量上限、每用户与全局并发、许可归还与重复 close
 cd backend && .\mvnw.cmd test
 
-# AI 引擎：pytest（27 个用例）
+# AI 引擎：pytest（32 个用例）
 #   覆盖：文件类型/大小校验、SHA256 去重、索引失败补偿清理、删除顺序与过滤条件、
-#         文档归属校验（本人/管理员）、中文 BM25 分词与 TF 长度归一化、chunk 来源注入
+#         文档归属校验（本人/管理员）、中文 BM25 分词与 TF 长度归一化、chunk 来源注入、
+#         并发闸门的获取/超时/异常释放
 cd rag_engine
 pip install -r requirements-dev.txt          # 仅测试依赖，不进生产镜像
 python -m pytest tests -q
 ```
+
+## 压测
+
+`scripts/load_test_chat.py` 只依赖 Python 标准库，用于验证限流与许可释放：
+
+```bash
+# 打引擎（默认 20 并发，不需要登录）
+python scripts/load_test_chat.py
+
+# 打网关（账号密码换 JWT）
+python scripts/load_test_chat.py --url http://localhost:8081/api/chat/stream \
+    --username admin --password admin123
+```
+
+实测环境（2 核，20 并发）：
+
+| 目标 | 结果 |
+| --- | --- |
+| RAG 引擎 | 8 × 200 / 12 × 429（引擎聊天闸门 8） |
+| 网关 · 同一用户 | 1 × 200 / 19 × 429（每用户并发 1） |
+| 网关 · 放宽每用户限制 | 8 × 200 / 12 × 429（全局并发 8） |
+
+压测结束后单发一条请求仍成功，说明许可没有泄漏。失败响应示例：
+`{"code":429,"message":"当前请求较多，请稍后再试","data":null}`。
+
 
 ## License
 

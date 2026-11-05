@@ -1,3 +1,7 @@
 # 根目录环境变量（docker compose 用，真实值只在本地 .env）
 .env
 docs/项目方案与复盘.md
+__pycache__/
+*.py[cod]
+rag_engine/rag_eval/eval_report*.json
+

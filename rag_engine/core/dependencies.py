@@ -10,6 +10,7 @@ import asyncio
 import threading
 
 from core.config import settings
+from core.concurrency import AsyncConcurrencyLimiter
 from core.database import get_session_factory
 # checkpointer 的实现与连接池在 core/postgres.py（这里只做转发，保持依赖注入入口统一）
 from core.postgres import get_checkpointer  # noqa: F401
@@ -130,3 +131,37 @@ def get_conversation_service() -> ConversationService:
     if _conversation_service is None:
         _conversation_service = ConversationService(session_factory=get_session_factory())
     return _conversation_service
+
+
+# ==================== 并发闸门 ====================
+
+_chat_limiter = None
+_upload_limiter = None
+
+
+def get_chat_limiter() -> AsyncConcurrencyLimiter:
+    """聊天并发闸门单例（全进程共享，限制同时在途的问答请求）"""
+    global _chat_limiter
+    if _chat_limiter is None:
+        _chat_limiter = AsyncConcurrencyLimiter(
+            "聊天",
+            settings.MAX_CONCURRENT_CHATS,
+            settings.CONCURRENCY_WAIT_SECONDS,
+        )
+    return _chat_limiter
+
+
+def get_upload_limiter() -> AsyncConcurrencyLimiter:
+    """文档上传并发闸门单例
+
+    和聊天分开：上传要解析 PDF、分块、调 embedding、写向量库，是重活；
+    共用会让几个大文件把聊天的位子也占掉，用户的对话直接卡住。
+    """
+    global _upload_limiter
+    if _upload_limiter is None:
+        _upload_limiter = AsyncConcurrencyLimiter(
+            "文档上传",
+            settings.MAX_CONCURRENT_UPLOADS,
+            settings.CONCURRENCY_WAIT_SECONDS,
+        )
+    return _upload_limiter

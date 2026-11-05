@@ -1,7 +1,11 @@
 package com.ragadmin.common;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -11,6 +15,8 @@ import org.springframework.web.context.request.async.AsyncRequestNotUsableExcept
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 
 /**
@@ -18,7 +24,10 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+    private final ObjectMapper objectMapper;
 
     /** 客户端已断开 / 异步超时（SSE 场景常见）：连接都断了，无需返回响应，静默处理避免次生错误 */
     @ExceptionHandler({AsyncRequestNotUsableException.class, AsyncRequestTimeoutException.class})
@@ -42,10 +51,23 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Result.error(400, msg));
     }
 
-    /** 业务异常 → 携带自己的 code */
+    /**
+     * 业务异常 → 携带自己的 code
+     *
+     * 直接写 response，不走内容协商：流式客户端可能只声明 Accept: text/event-stream，
+     * 而限流的 429 是 JSON；交给消息转换器会因 Accept 不匹配再抛异常，最终变成 500。
+     * 这里强制写 JSON，保证限流/业务错误一定能送达。
+     */
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<Result<Void>> handleBusiness(BusinessException e) {
-        return ResponseEntity.status(e.getCode()).body(Result.error(e.getCode(), e.getMessage()));
+    public void handleBusiness(BusinessException e, HttpServletResponse response) throws IOException {
+        if (response.isCommitted()) {
+            log.debug("响应已提交，无法写入业务错误: {}", e.getMessage());
+            return;
+        }
+        response.setStatus(e.getCode());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        objectMapper.writeValue(response.getWriter(), Result.error(e.getCode(), e.getMessage()));
     }
 
     /** 兜底：未知异常 → 500，不暴露内部细节 */

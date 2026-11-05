@@ -7,7 +7,8 @@
 from fastapi import APIRouter, File, UploadFile, Depends
 from fastapi.responses import FileResponse
 from core.caller import Caller, get_caller
-from core.dependencies import get_document_service
+from core.concurrency import AsyncConcurrencyLimiter
+from core.dependencies import get_document_service, get_upload_limiter
 from models.document import (
     DocumentUploadResponse,
     DocumentListResponse,
@@ -30,8 +31,12 @@ async def upload(
     file: UploadFile = File(...),
     caller: Caller = Depends(get_caller),
     service: DocumentService = Depends(get_document_service),
+    limiter: AsyncConcurrencyLimiter = Depends(get_upload_limiter),
 ) -> DocumentUploadResponse:
-    return await service.upload(file, caller)
+    # 上传是重活（解析、分块、嵌入、写向量库），单独限并发：
+    # 几个大 PDF 同时进来会把线程池占满，连聊天请求也一起变慢
+    async with limiter:
+        return await service.upload(file, caller)
 
 
 @router.get(

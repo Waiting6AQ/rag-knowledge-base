@@ -5,7 +5,7 @@
 ## 特性
 
 - **混合检索**：dense（语义）+ sparse（BM25 关键词）双路召回，两路在 Qdrant **服务端**用 RRF 融合成一次查询返回，互补提升召回率
-- **CrossEncoder 重排序**：`BAAI/bge-reranker-base` 联合编码精排，分数 < 0.3 直接丢弃——"有没有相关内容"由它判断，检索层不做阈值裁剪
+- **CrossEncoder 重排序**：`BAAI/bge-reranker-base` 联合编码精排，分数 < 0.3 直接丢弃——"有没有相关内容"由它判断，检索层不做阈值裁剪；模型为全进程单例（双重检查 + 线程锁），并发首次请求也只加载一次
 - **多轮对话**：自动指代消解 + `add_messages` 消息管理 + AsyncPostgresSaver 状态持久化，重启不丢失
 - **上下文自动摘要**：消息超量时增量压缩（窗口 8 条 / 保留 4 条），长对话不丢关键信息
 - **Token 级流式输出**：SSE 格式，打字机效果 + 实时进度反馈（分析问题 → 检索文档 → 生成回答）
@@ -15,6 +15,7 @@
 - **元数据与向量分离**：文档元数据在 PostgreSQL，向量在 Qdrant——列表页是一次 SELECT，删除是事务性操作
 - **置信度评估**：LLM 五级锚点自评，前端状态栏实时展示
 - **容错与降级**：LLM 网络/限流自动重试 + 备用模型切换，Embedding 指数退避重试，上传失败自动清理孤儿数据，空流/异常兜底文案，多轮消息保持成对
+- **并发闸门**：`asyncio.Semaphore` 限制同时在途的聊天（8）与上传（2），排队 1.5 秒后超时返回 429；流式响应在生成器 `finally` 里释放许可，避免泄漏（单进程有效，多 worker 时每进程各一份）
 
 ## 技术栈
 
@@ -179,6 +180,10 @@ DASHSCOPE_API_KEY=sk-your-key-here
 POSTGRES_DSN=postgresql://postgres:your_password@localhost:5432/rag_engine
 # 向量库地址，默认 http://localhost:6333，容器内由 compose 注入 http://qdrant:6333
 QDRANT_URL=http://localhost:6333
+# 并发闸门（可选，不配则用 core/config.py 的默认值）
+# MAX_CONCURRENT_CHATS=8
+# MAX_CONCURRENT_UPLOADS=2
+# CONCURRENCY_WAIT_SECONDS=1.5
 ```
 
 也可以通过环境变量设置。

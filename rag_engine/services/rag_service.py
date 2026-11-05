@@ -21,9 +21,9 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.documents import Document
-from sentence_transformers import CrossEncoder
 
 from core.config import settings
+from core.reranker import get_reranker
 from models.chat import ChatResponse, SourceInfo
 from services.prompts import (
     EVAL_SYSTEM_PROMPT,
@@ -145,15 +145,11 @@ class RAGService:
         if len(docs) <= 1:
             return docs
 
-        # 模型只加载一次，缓存在实例上
-        if not hasattr(self, "_reranker"):
-            self._reranker = CrossEncoder(
-                "BAAI/bge-reranker-base",
-                model_kwargs={"torch_dtype": "auto"},
-            )
-
+        # 模型是全进程单例（core/reranker.py）：并发首次请求也只会加载一次。
+        # 不要在这里用 hasattr 做懒加载——多个线程会同时通过检查，各加载一遍。
+        reranker = get_reranker()
         pairs = [(query, doc.page_content) for doc in docs]
-        scores = self._reranker.predict(pairs)
+        scores = reranker.predict(pairs)
         ranked = sorted(zip(docs, scores), key=lambda x: x[1], reverse=True)
         return [doc for doc, s in ranked if s >= 0.3]
 

@@ -402,6 +402,15 @@ async function send() {
       }),
     })
 
+    // 限流等错误会在流开始前返回 JSON（如 429），不能当 SSE 读——
+    // 否则 reader 读到的是一段 JSON，解析失败后只会显示笼统的"服务不可用"
+    if (!resp.ok) {
+      const data = await resp.json().catch(() => null)
+      const err = new Error(data?.message || '请求未成功，请稍后再试')
+      err.status = resp.status
+      throw err
+    }
+
     const reader = resp.body.getReader()
     const decoder = new TextDecoder()
     let answer = ''
@@ -462,9 +471,16 @@ async function send() {
       }
     }
   } catch (e) {
-    aiMsg.content = '❌ AI 服务暂时不可用，请稍后再试'
+    if (e.status) {
+      // 网关/引擎返回的 HTTP 错误（429 限流等）：显示后端给的原因
+      aiMsg.content = '⚠️ ' + e.message
+      status.value = e.status === 429 ? '请求过于频繁' : '请求失败'
+    } else {
+      // 网络层错误：不把 "Failed to fetch" 这类原文甩给用户
+      aiMsg.content = '❌ AI 服务暂时不可用，请稍后再试'
+      status.value = '请求失败'
+    }
     aiMsg.streaming = false
-    status.value = '请求失败'
   } finally {
     sending.value = false
     aiMsg.progress = null   // 整个流程结束，进度行撤掉（引用来源保留）

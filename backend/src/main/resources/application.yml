@@ -57,3 +57,14 @@ jwt:
 app:
   # 内部 AI 服务地址（rag_engine）
   ai-service-url: ${AI_SERVICE_URL:http://localhost:8000}
+
+  # 网关限流（单实例内存版；多实例部署时全局限制会变成 N 倍）
+  # 令牌桶管「每秒进来多少」，信号量管「同时有多少没处理完」
+  rate-limit:
+    user-qps: 3               # 每个用户每秒补充的令牌数
+    user-burst: 6             # 每个用户允许的短时突发
+    global-qps: 30            # 全局每秒补充的令牌数
+    global-burst: 60          # 全局允许的短时突发
+    max-concurrent: 8         # 全局同时在途的聊天请求
+    max-concurrent-per-user: 1  # 每个用户同时在途（防双击/多标签页）
+    wait-millis: 1500         # 全局并发满时最多排队多久，超时 429

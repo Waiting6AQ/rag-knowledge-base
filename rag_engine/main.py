@@ -61,9 +61,12 @@ async def lifespan(app: FastAPI):
     print(f"✅ Qdrant collection 就绪（{settings.QDRANT_COLLECTION}）")
 
     # ---- ③ 重排序模型 ----
-    from sentence_transformers import CrossEncoder
+    # 单例预热：真正存下来给后续请求复用。
+    # 不要在这里 new 一个 CrossEncoder 然后丢掉——那样启动时白加载一次，
+    # 首次并发请求还会各自再加载一遍。
+    from core.reranker import get_reranker
     print("📦 正在加载重排序模型 BAAI/bge-reranker-base ...")
-    CrossEncoder("BAAI/bge-reranker-base", model_kwargs={"torch_dtype": "auto"})
+    get_reranker()
     print("✅ 重排序模型加载完成")
 
     yield

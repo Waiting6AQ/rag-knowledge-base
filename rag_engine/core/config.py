@@ -51,6 +51,12 @@ class Settings(BaseSettings):
     # 单次返回的文档正文字符上限（点开查看全文时用）：超出部分截断，并在响应里标记
     DOC_CONTENT_MAX_CHARS: int = 50000
 
+    # === 并发闸门（单进程有效；uvicorn --workers N 时每个进程各有一份） ===
+    # 聊天和上传分开计量：聊天主要是等 LLM（I/O），上传要解析 + 嵌入（CPU / 线程池）
+    MAX_CONCURRENT_CHATS: int = 8           # 同时在途的聊天请求
+    MAX_CONCURRENT_UPLOADS: int = 2         # 同时在途的文档上传
+    CONCURRENCY_WAIT_SECONDS: float = 1.5   # 拿不到许可时最多排队多久，超时返回 429
+
     class Config:
         env_file = str(BASE_DIR / ".env")
         env_file_encoding = "utf-8"
