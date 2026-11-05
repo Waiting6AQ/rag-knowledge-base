@@ -8,25 +8,25 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * 聊天请求的网关级限流：令牌桶（QPS）+ 信号量（并发）
+ * 聊天请求的网关级并发闸门
  *
- * 一个请求要依次通过四道闸门：
+ * 一个请求要依次通过两道闸门：
  *   ① 每用户并发（防重复提交，满了立即拒绝）
- *   ② 每用户 QPS（令牌桶）
- *   ③ 全局 QPS（令牌桶）
- *   ④ 全局并发（信号量，最多等 waitMillis）
+ *   ② 全局并发（信号量，最多等 waitMillis）
  *
- * 任何一道失败都抛 429；已经占到的并发位会归还，令牌不退还
- * （请求确实来过，算一次流量）。
+ * 为什么只限并发、不做 QPS：
+ *   聊天是秒级长请求，用户串行发送时的速率远低于常见的 QPS 阈值；
+ *   真正会压垮系统的是「同时有多少个流在跑」，并发闸门才是有效约束。
  *
- * 单实例有效：令牌桶和信号量都在 JVM 内存里。部署多个网关实例时，
- * 全局限制会变成 N 倍；集群级限流需要换成 Redis + Lua。
+ * 任何一道失败都抛 429；已经占到的并发位会归还。
+ *
+ * 单实例有效：信号量在 JVM 内存里。部署多个网关实例时，
+ * 全局限制会变成 N 倍；集群级限流需要换成 Redis 或放到网关/代理层。
  */
 @Component
 public class ChatRateLimiter {
 
     private final RateLimitProperties props;
-    private final TokenBucket globalBucket;
     private final Semaphore globalConcurrent;
     /**
      * 每个用户的状态。key 是用户 id，数量受用户表限制，
@@ -36,7 +36,6 @@ public class ChatRateLimiter {
 
     public ChatRateLimiter(RateLimitProperties props) {
         this.props = props;
-        this.globalBucket = new TokenBucket(props.getGlobalBurst(), props.getGlobalQps());
         this.globalConcurrent = new Semaphore(props.getMaxConcurrent(), false);
     }
 
@@ -47,22 +46,14 @@ public class ChatRateLimiter {
     public Permit acquire(Long userId) {
         UserState user = users.computeIfAbsent(userId, id -> new UserState(props));
 
-        // ① 每用户并发：双击 / 多标签页的第二个请求直接拒绝，不占队列
+        // ① 每用户并发：双击 / 多标签页的第二个请求直接拒绝，不占全局队列
         if (!user.inFlight.tryAcquire()) {
             throw tooMany("上一个问题还在处理中");
         }
 
         boolean acquired = false;
         try {
-            // ② 每用户 QPS
-            if (!user.bucket.tryAcquire()) {
-                throw tooMany("请求过于频繁");
-            }
-            // ③ 全局 QPS
-            if (!globalBucket.tryAcquire()) {
-                throw tooMany("系统繁忙");
-            }
-            // ④ 全局并发：短暂排队，吸收一瞬间的突发
+            // ② 全局并发：短暂排队，吸收一瞬间的突发
             if (!globalConcurrent.tryAcquire(props.getWaitMillis(), TimeUnit.MILLISECONDS)) {
                 throw tooMany("当前请求较多");
             }
@@ -73,7 +64,7 @@ public class ChatRateLimiter {
             throw new BusinessException(503, "请求被中断，请重试");
         } finally {
             if (!acquired) {
-                user.inFlight.release();   // 归还 ①；②③ 的令牌不退还
+                user.inFlight.release();
             }
         }
     }
@@ -87,13 +78,11 @@ public class ChatRateLimiter {
         return new BusinessException(429, reason + "，请稍后再试");
     }
 
-    /** 每个用户的状态：自己的令牌桶 + 自己的并发位 */
+    /** 每个用户的状态：自己的并发位 */
     private static final class UserState {
-        private final TokenBucket bucket;
         private final Semaphore inFlight;
 
         private UserState(RateLimitProperties props) {
-            this.bucket = new TokenBucket(props.getUserBurst(), props.getUserQps());
             this.inFlight = new Semaphore(props.getMaxConcurrentPerUser(), false);
         }
     }
