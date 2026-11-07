@@ -4,4 +4,5 @@ docs/项目方案与复盘.md
 __pycache__/
 *.py[cod]
 rag_engine/rag_eval/eval_report*.json
+perf_results/
 

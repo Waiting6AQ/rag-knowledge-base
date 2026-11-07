@@ -56,7 +56,8 @@ jwt:
 
 app:
   # 内部 AI 服务地址（rag_engine）
-  ai-service-url: ${AI_SERVICE_URL:http://localhost:8000}
+  # 本地用 127.0.0.1：Windows 上 localhost 会先试 IPv6，而引擎只监听 IPv4，回退约 2 秒
+  ai-service-url: ${AI_SERVICE_URL:http://127.0.0.1:8000}
 
   # 聊天并发闸门（单实例内存版；多实例部署时全局限制会变成 N 倍）
   # 只限「同时在途的请求数」：聊天是秒级长请求，限并发比限 QPS 更有效

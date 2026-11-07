@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     DASHSCOPE_API_KEY: str
     LLM_MODEL_NAME: str = "openai:qwen3.7-max-2026-06-08"
     LLM_BACKUP_MODEL_NAME: str = "openai:qwen3.7-max-2026-05-20"
+    # 轻量模型：给"分类 / 打分 / 改写"这类短输出任务用，生成回答仍走 LLM_MODEL_NAME
+    LLM_FAST_MODEL_NAME: str = "openai:qwen3.8-flash"
     LLM_BASE_URL: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     EMBEDDING_MODEL_NAME: str = "qwen3.7-text-embedding"
 

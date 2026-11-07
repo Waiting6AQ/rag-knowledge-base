@@ -97,10 +97,13 @@ class RAGService:
     """
 
     def __init__(self, vector_store, llm, json_llm,
-                 checkpointer: AsyncPostgresSaver, embeddings):
+                 checkpointer: AsyncPostgresSaver, embeddings,
+                 fast_llm=None, fast_json_llm=None):
         self.vector_store = vector_store    # Qdrant 混合检索实例（dense + sparse）
         self.llm = llm                      # Qwen LLM
         self.json_llm = json_llm            # JSON Mode：改写节点的双形态输出
+        self.fast_llm = fast_llm or llm     # 轻量模型：判断类任务（置信度评估）
+        self.fast_json_llm = fast_json_llm or json_llm   # 轻量 JSON 模型：改写节点
         self.checkpointer = checkpointer    # AsyncPostgresSaver（自动持久化对话状态）
         self.embeddings = embeddings        # AliyunEmbeddings
 
@@ -238,7 +241,7 @@ class RAGService:
         # 保持上一轮的值。上一轮判定成闲聊设了 True，这一轮不覆盖的话它会一直留着，
         # 于是后续每一轮都在条件边被短路（不检索、不生成，用户什么都看不到）。
         try:
-            chain = self.rewrite_prompt | self.json_llm | StrOutputParser()
+            chain = self.rewrite_prompt | self.fast_json_llm | StrOutputParser()
             raw = await chain.ainvoke({
                 "query": state["query"],
                 "chat_history": fresh,
@@ -427,7 +430,7 @@ class RAGService:
         # 回答出完到 done 之间有一段评估耗时：不提示的话看起来像卡住了
         get_stream_writer()({"event": "progress", "data": "正在评估回答置信度"})
 
-        chain = self.eval_prompt | self.llm | StrOutputParser()
+        chain = self.eval_prompt | self.fast_llm | StrOutputParser()
         try:
             score = float((await chain.ainvoke({
                 "context": context,

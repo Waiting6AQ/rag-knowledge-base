@@ -110,7 +110,9 @@ def recovery_check(url: str, field: str, prompt: str, token: str | None, timeout
 
 def main():
     parser = argparse.ArgumentParser(description="聊天接口并发压测（仅标准库）")
-    parser.add_argument("--url", default="http://localhost:8000/api/v1/chat/stream",
+    # 用 127.0.0.1 而不是 localhost：Windows 上 localhost 会先解析到 IPv6 的 ::1，
+    # 引擎只监听 IPv4，回退一次要多花约 2 秒，会污染单请求耗时
+    parser.add_argument("--url", default="http://127.0.0.1:8000/api/v1/chat/stream",
                         help="聊天流式接口地址（默认打 RAG 引擎）")
     parser.add_argument("--field", default="question", choices=["question", "message"],
                         help="请求体字段名：RAG 用 question，客服用 message")

@@ -210,30 +210,8 @@ pip install -r requirements-dev.txt          # 仅测试依赖，不进生产镜
 python -m pytest tests -q
 ```
 
-## 压测
-
-`scripts/load_test_chat.py` 只依赖 Python 标准库，用于验证限流与许可释放：
-
-```bash
-# 打引擎（默认 20 并发，不需要登录）
-python scripts/load_test_chat.py
-
-# 打网关（账号密码换 JWT）
-python scripts/load_test_chat.py --url http://localhost:8081/api/chat/stream \
-    --username admin --password admin123
-```
-
-实测环境（2 核，20 并发）：
-
-| 目标 | 结果 |
-| --- | --- |
-| RAG 引擎 | 8 × 200 / 12 × 429（引擎聊天闸门 8） |
-| 网关 · 同一用户 | 1 × 200 / 19 × 429（每用户并发 1） |
-| 网关 · 每用户并发调大 | 8 × 200 / 12 × 429（全局并发 8） |
-
-压测结束后单发一条请求仍成功，说明许可没有泄漏。失败响应示例：
-`{"code":429,"message":"当前请求较多，请稍后再试","data":null}`。
-
+并发与性能脚本（仅依赖标准库）：`scripts/load_test_chat.py`（限流与许可释放）、
+`scripts/perf_timeline.py`（分阶段耗时）、`scripts/multiturn_check.py`（多轮改写质量）。
 
 ## License
 

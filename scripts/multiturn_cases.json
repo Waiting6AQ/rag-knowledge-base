@@ -1,0 +1,52 @@
+[
+  {
+    "name": "年假 → 病假（主题省略）",
+    "turns": [
+      "星辰科技的年假政策是什么？怎么计算？",
+      "那病假呢？"
+    ],
+    "expect_doc": "星辰科技员工手册.docx",
+    "rewrite_must": ["病假"],
+    "answer_keywords": ["病假"]
+  },
+  {
+    "name": "混合检索 → 它（代词）",
+    "turns": [
+      "什么是混合检索？",
+      "它比单一检索好在哪里？"
+    ],
+    "expect_doc": "RAG技术介绍.md",
+    "rewrite_must": ["混合检索"],
+    "answer_keywords": ["BM25", "向量"]
+  },
+  {
+    "name": "async/await → 它（代词 + 跨主题）",
+    "turns": [
+      "Python 中 async 和 await 是做什么的？",
+      "那它和多线程有什么区别？"
+    ],
+    "expect_doc": "Python异步编程快速入门.txt",
+    "rewrite_must": ["async", "await", "协程", "异步"],
+    "answer_keywords": ["线程", "事件循环"]
+  },
+  {
+    "name": "试用期 → 提前转正（语境承接）",
+    "turns": [
+      "星辰科技的试用期是多久？",
+      "提前转正有什么条件？"
+    ],
+    "expect_doc": "星辰科技员工手册.docx",
+    "rewrite_must": ["转正"],
+    "answer_keywords": ["转正"]
+  },
+  {
+    "name": "学习基金 → 这笔钱（名词指代）",
+    "turns": [
+      "员工每年有多少学习基金？",
+      "这笔钱可以用来做什么？"
+    ],
+    "expect_doc": "星辰科技员工手册.docx",
+    "rewrite_must": ["学习基金"],
+    "answer_keywords": ["书籍", "课程"]
+  }
+]
