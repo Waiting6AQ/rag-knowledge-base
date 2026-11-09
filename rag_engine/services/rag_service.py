@@ -11,6 +11,7 @@ RAG 服务 — 项目核心
 - 流式输出：SSE 格式，逐阶段返回进度（来源 → 回答 → 置信度 → 完成）
 """
 import json
+import logging
 import uuid
 from typing import TypedDict, Annotated, Any, AsyncGenerator, Literal
 from langgraph.graph import StateGraph, START, END
@@ -32,6 +33,8 @@ from services.prompts import (
     REWRITE_SYSTEM_PROMPT,
     SUMMARIZE_SYSTEM_PROMPT,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # ==================== 状态定义 ====================
@@ -217,7 +220,7 @@ class RAGService:
             result = await chain.ainvoke({"messages": prompt_text})
         except Exception as e:
             # 摘要失败降级：跳过本轮压缩，后续轮次再触发，管线不崩
-            print(f"⚠️ 摘要节点异常: {type(e).__name__}: {e}")
+            logger.warning("摘要节点异常: %s: %s", type(e).__name__, e)
             return {}
         done += compress
         return {"summary": f"\n历史摘要：{result}\n", "summarized_count": done}
@@ -248,7 +251,7 @@ class RAGService:
             })
             data = _loads_json(raw)
         except Exception as e:
-            print(f"⚠️ 查询改写节点异常（降级为原问题检索）: {type(e).__name__}: {e}")
+            logger.warning("查询改写节点异常（降级为原问题检索）: %s: %s", type(e).__name__, e)
             return {"chitchat": False}
 
         if data.get("is_chitchat"):
@@ -280,7 +283,7 @@ class RAGService:
         """
         chitchat = state.get("chitchat")
         if chitchat is None:
-            print("⚠️ 改写节点未设置 chitchat，按检索问题处理")
+            logger.warning("改写节点未设置 chitchat，按检索问题处理")
             return "retrieve_documents"
         return "end" if chitchat else "retrieve_documents"
 
@@ -362,12 +365,12 @@ class RAGService:
                 full_answer += token
                 writer(token)
         except Exception as e:
-            print(f"⚠️ generate_answer 异常: {type(e).__name__}: {e}")
+            logger.warning("generate_answer 异常: %s: %s", type(e).__name__, e)
             full_answer = "抱歉，回答生成失败（可能是内容审核拦截），请稍后重试或换个问法。"
             writer(full_answer)
         if not full_answer:
             # 流正常结束但无内容（空流，模型偶发行为）：补兜底，避免空消息入库
-            print("⚠️ generate_answer 空流：LLM 未产生任何内容")
+            logger.warning("generate_answer 空流：LLM 未产生任何内容")
             full_answer = "抱歉，回答生成失败（模型未返回内容），请稍后重试或换个问法。"
             writer(full_answer)
 
@@ -408,7 +411,7 @@ class RAGService:
                 full_answer += token
                 writer(token)
         except Exception as e:
-            print(f"⚠️ 弃答节点异常: {type(e).__name__}: {e}")
+            logger.warning("弃答节点异常: %s: %s", type(e).__name__, e)
         if not full_answer:
             # 兜底文案本身也不含任何知识性内容，不可能编造
             full_answer = "知识库中没有找到相关内容，建议换个问法或补充相关文档。"

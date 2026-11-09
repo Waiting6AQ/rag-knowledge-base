@@ -9,6 +9,7 @@ PostgreSQL 连接池 + LangGraph checkpointer
 表和读写逻辑都由框架管理，不参与 ORM 映射。
 """
 import asyncio
+import logging
 from contextlib import suppress
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -16,6 +17,8 @@ from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
 from core.config import settings
+
+logger = logging.getLogger(__name__)
 
 _pool: AsyncConnectionPool | None = None
 _checkpointer: AsyncPostgresSaver | None = None
@@ -63,8 +66,8 @@ async def open_pool_with_retry(attempts: int = 10, base_delay: float = 1.0) -> A
             with suppress(Exception):
                 await pool.close()
             delay = min(base_delay * i, 10.0)
-            print(f"⚠️ PostgreSQL 未就绪（{i}/{attempts}）: "
-                  f"{type(e).__name__}: {e}；{delay:.1f}s 后重试")
+            logger.warning("PostgreSQL 未就绪（%d/%d）: %s: %s；%.1fs 后重试",
+                           i, attempts, type(e).__name__, e, delay)
             if i < attempts:
                 await asyncio.sleep(delay)
 

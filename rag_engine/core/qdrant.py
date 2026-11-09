@@ -10,10 +10,13 @@ collection 用裸客户端建，不交给 langchain-qdrant：sparse 向量的 ID
   IDF        = Qdrant 按 Modifier.IDF 自动维护并在检索时乘上
 """
 import asyncio
+import logging
 
 from qdrant_client import QdrantClient, models
 
 from core.config import settings
+
+logger = logging.getLogger(__name__)
 
 # 命名向量：dense 走语义召回，sparse 走 BM25 关键词召回
 DENSE_VECTOR_NAME = "dense"
@@ -54,8 +57,8 @@ async def init_collection(name: str, attempts: int = 10, base_delay: float = 1.0
         except Exception as e:
             last_exc = e
             delay = min(base_delay * i, 5.0)
-            print(f"⚠️ Qdrant 未就绪（{i}/{attempts}）: "
-                  f"{type(e).__name__}: {e}；{delay:.1f}s 后重试")
+            logger.warning("Qdrant 未就绪（%d/%d）: %s: %s；%.1fs 后重试",
+                           i, attempts, type(e).__name__, e, delay)
             if i < attempts:
                 await asyncio.sleep(delay)
 

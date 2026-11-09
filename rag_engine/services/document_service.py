@@ -7,6 +7,7 @@
 元数据（文件名、类型、块数、上传时间）存 PostgreSQL，向量存向量库，两边分开：
 列表页是一次 SELECT，上传去重走唯一约束，删除不再依赖向量库的元数据检索能力。
 """
+import logging
 import os
 import uuid
 from pathlib import Path
@@ -36,6 +37,8 @@ from models.document import (
     DocumentDeleteResponse,
     DocumentContentResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentService:
@@ -115,7 +118,7 @@ class DocumentService:
                 await run_in_threadpool(self._delete_vectors, doc_id)
             except Exception as cleanup_err:
                 # 清理本身也失败时不能盖掉原始异常，否则排查不到根因
-                print(f"⚠️ 上传失败后清理向量也失败（doc_id={doc_id}）: {cleanup_err}")
+                logger.error("上传失败后清理向量也失败（doc_id=%s）: %s", doc_id, cleanup_err)
             raise HTTPException(
                 status_code=500,
                 detail=f"文档索引失败（{type(e).__name__}），已清理残留数据，请稍后重试",

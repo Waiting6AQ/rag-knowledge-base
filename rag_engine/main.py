@@ -10,6 +10,7 @@ RAG 知识库系统 — 应用入口
     API 文档   http://localhost:8000/docs
     Web 界面   http://localhost:8000
 """
+import logging
 import sys
 from pathlib import Path
 from fastapi import FastAPI
@@ -27,6 +28,12 @@ from routers import documents, chat, conversations
 for _stream in (sys.stdout, sys.stderr):
     if hasattr(_stream, "reconfigure"):
         _stream.reconfigure(errors="replace")
+
+# ==================== 日志 ====================
+# 必须在其他模块打日志之前初始化：启动阶段的日志也要落文件
+from core.logging import setup_logging
+setup_logging()
+logger = logging.getLogger(__name__)
 
 # ==================== 初始化数据目录 ====================
 
@@ -50,7 +57,7 @@ async def lifespan(app: FastAPI):
 
     await init_checkpointer()
     await init_database()
-    print("✅ PostgreSQL 初始化完成（checkpoint 表 + 业务表）")
+    logger.info("PostgreSQL 初始化完成（checkpoint 表 + 业务表）")
 
     # ---- ② Qdrant（向量库）----
     # collection 的 sparse 向量带 Modifier.IDF，只能在建库时指定，所以建库集中在这里。
@@ -58,23 +65,23 @@ async def lifespan(app: FastAPI):
     from core.qdrant import init_collection
 
     await init_collection(settings.QDRANT_COLLECTION)
-    print(f"✅ Qdrant collection 就绪（{settings.QDRANT_COLLECTION}）")
+    logger.info("Qdrant collection 就绪（%s）", settings.QDRANT_COLLECTION)
 
     # ---- ③ 重排序模型 ----
     # 单例预热：真正存下来给后续请求复用。
     # 不要在这里 new 一个 CrossEncoder 然后丢掉——那样启动时白加载一次，
     # 首次并发请求还会各自再加载一遍。
     from core.reranker import get_reranker
-    print("📦 正在加载重排序模型 BAAI/bge-reranker-base ...")
+    logger.info("正在加载重排序模型 BAAI/bge-reranker-base ...")
     get_reranker()
-    print("✅ 重排序模型加载完成")
+    logger.info("重排序模型加载完成")
 
     yield
 
     # ---- 关闭：释放连接（顺序与建立时相反）----
     await dispose_engine()
     await close_pool()
-    print("👋 PostgreSQL 连接已释放")
+    logger.info("PostgreSQL 连接已释放")
 
 # ==================== 创建应用 ====================
 
@@ -133,4 +140,8 @@ if __name__ == "__main__":
         if sys.platform == "win32"
         else {}
     )
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=reload, **extra)
+    # reload_excludes：日志目录在项目内，不排除的话每写一行日志都会触发一次重载检测
+    uvicorn.run(
+        "main:app", host="0.0.0.0", port=8000, reload=reload,
+        reload_excludes=["logs", "logs/*"], **extra,
+    )
