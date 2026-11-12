@@ -6,4 +6,5 @@ __pycache__/
 rag_engine/rag_eval/eval_report*.json
 perf_results/
 logs/
+.vscode/
 

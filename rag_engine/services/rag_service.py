@@ -12,6 +12,7 @@ RAG 服务 — 项目核心
 """
 import json
 import logging
+import time
 import uuid
 from typing import TypedDict, Annotated, Any, AsyncGenerator, Literal
 from langgraph.graph import StateGraph, START, END
@@ -35,6 +36,14 @@ from services.prompts import (
 )
 
 logger = logging.getLogger(__name__)
+
+# 业务日志用阶段名当标签：格式化后是 [rag.retrieve] 这种短标签，
+# 消息里不必重复写是哪个阶段，也能直接 grep 某一类
+log_rewrite = logging.getLogger("rag.rewrite")
+log_retrieve = logging.getLogger("rag.retrieve")
+log_generate = logging.getLogger("rag.generate")
+log_confidence = logging.getLogger("rag.confidence")
+log_no_answer = logging.getLogger("rag.no_answer")
 
 
 # ==================== 状态定义 ====================
@@ -237,6 +246,7 @@ class RAGService:
         prev = state["messages"][:-1]              # 排除当前问题（由 add_messages 自动追加）
         writer = get_stream_writer()
         writer({"event": "progress", "data": "正在分析问题"})
+        started = time.perf_counter()
         done = state.get("summarized_count", 0)    # 已压缩多少条
         fresh = prev[done:]                        # 所有未压缩消息（≤ 8 条，summarize 节点保证）
 
@@ -258,6 +268,8 @@ class RAGService:
             reply = str(data.get("reply") or "").strip()
             if reply:
                 writer(reply)
+                log_rewrite.info("判定闲聊 输出=%d字 耗时=%.2fs",
+                                 len(reply), time.perf_counter() - started)
                 # 必须同时写 answer 和 messages：短路路径也要留下一条 AI 消息，否则消息不成对，
                 # 下一轮的 messages[:-1] 和摘要的 window=8/keep=4 都会错位
                 return {
@@ -266,12 +278,16 @@ class RAGService:
                     "messages": [AIMessage(content=reply)],
                 }
             # reply 为空：别把这一轮吞掉，当检索问题继续走
+            log_rewrite.warning("判定闲聊但回复为空，按检索问题继续")
             return {"chitchat": False}
 
         rewritten = str(data.get("query") or "").strip()
         # 防御：空返回直接降级为原问题
         if not rewritten:
+            log_rewrite.warning("改写结果为空，按原问题检索")
             return {"chitchat": False}
+        log_rewrite.info("改写 %d→%d字 耗时=%.2fs",
+                         len(state["query"]), len(rewritten), time.perf_counter() - started)
         return {"chitchat": False, "query": rewritten}
 
     def _route_after_rewrite(self, state: RAGState) -> Literal["retrieve_documents", "end"]:
@@ -297,11 +313,13 @@ class RAGService:
         query = state["query"]
         writer = get_stream_writer()
         writer({"event": "progress", "data": "正在检索文档"})
+        started = time.perf_counter()
 
         # 这里故意不 catch：检索失败（向量库 / embedding 挂了）就让它抛出去，
         # 前端会显示"AI 服务暂时不可用"——那是诚实的。在这里降级成"没找到"反而误导，
         # 会让用户以为库里真没有，而实际是我们出了问题
         docs = self.vector_store.similarity_search(query, k=settings.TOP_K)
+        recalled = len(docs)
 
         # 重排序：Cross-Encoder 联合编码精排，低于阈值的一律丢弃
         docs = self._rerank(query, docs)
@@ -324,6 +342,9 @@ class RAGService:
         # 即使没检索到也要发一次空的 sources：否则前端分不清"没找到"和"还没开始检索"
         writer({"event": "sources", "data": sources})
 
+        log_retrieve.info("召回=%d 精排=%d 来源文件=%d 耗时=%.2fs",
+                          recalled, len(docs), len(sources),
+                          time.perf_counter() - started)
         return {
             "documents": docs,
             "context": "\n\n".join(context_parts),
@@ -340,6 +361,7 @@ class RAGService:
 
         走到这里一定有文档：检索为空由 retrieve 后的条件边分流到 no_answer 节点。
         """
+        started = time.perf_counter()
         # messages[:-1] 排除当前问题（由 {query} 单独传入），避免重复
         prev = state["messages"][:-1]
         done = state.get("summarized_count", 0)    # 已压缩多少条
@@ -357,11 +379,14 @@ class RAGService:
         # 文案不带省略号 —— 动态省略号由前端画（引擎写了会变成双份）
         writer({"event": "progress", "data": f"正在参考 {len(state.get('sources', []))} 篇文档生成回答"})
         full_answer = ""
+        first_token_at: float | None = None
         try:
             async for chunk in self.llm.astream(prompt_val):
                 token = chunk.content
                 if not token:
                     continue
+                if first_token_at is None:
+                    first_token_at = time.perf_counter()
                 full_answer += token
                 writer(token)
         except Exception as e:
@@ -373,6 +398,11 @@ class RAGService:
             logger.warning("generate_answer 空流：LLM 未产生任何内容")
             full_answer = "抱歉，回答生成失败（模型未返回内容），请稍后重试或换个问法。"
             writer(full_answer)
+
+        log_generate.info("引用来源=%d 输出=%d字 首token=%.2fs 耗时=%.2fs",
+                          len(state.get("sources", [])), len(full_answer),
+                          (first_token_at - started) if first_token_at else 0.0,
+                          time.perf_counter() - started)
 
         # add_messages 自动追加到 messages，response_metadata 存入来源供 get_history 使用
         return {
@@ -392,6 +422,7 @@ class RAGService:
 
         与 generate_answer 一样逐 token 流式输出，前端体验一致。
         """
+        started = time.perf_counter()
         prev = state["messages"][:-1]
         done = state.get("summarized_count", 0)
         prompt_val = self.no_answer_prompt.invoke({
@@ -417,6 +448,8 @@ class RAGService:
             full_answer = "知识库中没有找到相关内容，建议换个问法或补充相关文档。"
             writer(full_answer)
 
+        log_no_answer.info("弃答 输出=%d字 耗时=%.2fs",
+                           len(full_answer), time.perf_counter() - started)
         return {
             "answer": full_answer,
             "messages": [AIMessage(content=full_answer)],
@@ -429,6 +462,7 @@ class RAGService:
             # 没有文档时直接跳过评估，不发进度（瞬时返回，提示了反而闪一下）
             # 返回 None 而不是 0.0："没评估"和"评估为 0"是两回事
             return {"confidence": None}
+        started = time.perf_counter()
 
         # 回答出完到 done 之间有一段评估耗时：不提示的话看起来像卡住了
         get_stream_writer()({"event": "progress", "data": "正在评估回答置信度"})
@@ -443,6 +477,7 @@ class RAGService:
             score = min(max(score, 0.0), 1.0)
         except (ValueError, AttributeError):
             score = 0.5
+        log_confidence.info("score=%.2f 耗时=%.2fs", score, time.perf_counter() - started)
         return {"confidence": score}
 
     # ==================== 公开接口 ====================

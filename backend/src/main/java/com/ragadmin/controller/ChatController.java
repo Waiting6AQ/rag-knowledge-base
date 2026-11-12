@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/chat")
 @RequiredArgsConstructor
@@ -54,11 +56,22 @@ public class ChatController {
             // 映射级 produces 会逼着异常处理器用 event-stream 写 Result，写不出去变 500。
             response.setContentType(MediaType.TEXT_EVENT_STREAM_VALUE);
             return outputStream -> {
+                // 流式响应的真实耗时只能在这里量：访问日志过滤器在异步派发开始时就返回了，
+                // 它记到的是"把流交出去"的几毫秒，不是整段流的时长
+                long started = System.nanoTime();
+                boolean ok = false;
                 try {
                     body.writeTo(outputStream);
+                    ok = true;
                 } finally {
                     // 正常结束、AI 报错、客户端断开都会走到这里
                     permit.close();
+                    long costMs = (System.nanoTime() - started) / 1_000_000;
+                    if (ok) {
+                        log.info("chat_stream 完成 user={} 耗时={}ms", userId, costMs);
+                    } else {
+                        log.warn("chat_stream 中断 user={} 耗时={}ms", userId, costMs);
+                    }
                 }
             };
         } catch (RuntimeException e) {

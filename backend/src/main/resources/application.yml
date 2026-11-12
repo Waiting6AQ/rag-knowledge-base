@@ -44,6 +44,20 @@ server:
   # 冲突时设环境变量 SERVER_PORT 换一个即可，前端代理读同一个变量
   port: ${SERVER_PORT:8081}
 
+logging:
+  # 控制台 + 滚动文件，与引擎保持一致的容量策略（10MB × 5）
+  # 级别用 Spring Boot 原生环境变量临时调整，如 LOGGING_LEVEL_COM_RAGADMIN=DEBUG（排查 SQL 用 LOGGING_LEVEL_COM_RAGADMIN_MAPPER=DEBUG）
+  file:
+    name: logs/backend.log
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 5
+  pattern:
+    # [%X{traceId:-}]：TraceIdFilter 写入的链路 ID，缺失时显示 -；与引擎日志同一个 id，可跨服务 grep
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%-5level) %clr([%thread]){faint} %clr([%X{traceId:--}]){magenta} %clr(%logger{36}){cyan} - %msg%n%wEx"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%X{traceId:--}] %logger{36} - %msg%n%wEx"
+
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   configuration:

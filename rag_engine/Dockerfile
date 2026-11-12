@@ -24,9 +24,6 @@ ENV HF_ENDPOINT=https://hf-mirror.com
 # 模型缓存目录
 ENV HF_HOME=/app/.cache/huggingface
 
-# 关闭 reload（避免容器内 WatchFiles 检测模型下载触发重启死循环）
-ENV DISABLE_RELOAD=true
-
 # 暴露端口
 EXPOSE 8000
 
