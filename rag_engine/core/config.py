@@ -53,6 +53,12 @@ class Settings(BaseSettings):
     # 单次返回的文档正文字符上限（点开查看全文时用）：超出部分截断，并在响应里标记
     DOC_CONTENT_MAX_CHARS: int = 50000
 
+    # === 多模态：回答时附带检索到的原图 ===
+    # 开启后，命中的块里若有插图位置，就渲染成 PNG 一起交给模型；
+    # 关掉可省流量和首 token 延迟（排查问题时也方便做对照）
+    ENABLE_IMAGE_CONTEXT: bool = True
+    IMAGE_RENDER_DPI: int = 150
+
     # === 并发闸门（单进程有效；uvicorn --workers N 时每个进程各有一份） ===
     # 聊天和上传分开计量：聊天主要是等 LLM（I/O），上传要解析 + 嵌入（CPU / 线程池）
     MAX_CONCURRENT_CHATS: int = 8           # 同时在途的聊天请求

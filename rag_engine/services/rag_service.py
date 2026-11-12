@@ -10,10 +10,12 @@ RAG 服务 — 项目核心
 - 多轮对话：自动指代消解 + add_messages 自动追加 + AsyncPostgresSaver 持久化
 - 流式输出：SSE 格式，逐阶段返回进度（来源 → 回答 → 置信度 → 完成）
 """
+import base64
 import json
 import logging
 import time
 import uuid
+from pathlib import Path
 from typing import TypedDict, Annotated, Any, AsyncGenerator, Literal
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
@@ -27,6 +29,7 @@ from langchain_core.documents import Document
 from core.config import settings
 from core.reranker import get_reranker
 from models.chat import ChatResponse, SourceInfo
+from utils.pdf_parser.render import render_png
 from services.prompts import (
     EVAL_SYSTEM_PROMPT,
     NO_ANSWER_SYSTEM_PROMPT,
@@ -45,6 +48,9 @@ log_generate = logging.getLogger("rag.generate")
 log_confidence = logging.getLogger("rag.confidence")
 log_no_answer = logging.getLogger("rag.no_answer")
 
+# 单次回答最多附带几张原图：电池更换这类"主图 + 辅助图"两张够用，再多体积和 token 都不划算
+MAX_IMAGES_PER_ANSWER = 2
+
 
 # ==================== 状态定义 ====================
 
@@ -60,6 +66,7 @@ class RAGState(TypedDict):
     sources: list[dict[str, Any]]
     confidence: float | None                   # None = 本次没评估（没走 RAG）
     chitchat: bool | None                      # None = 本轮尚未判定；True = 闲聊（当场答完，不进检索）
+    has_image: bool                            # 本轮生成是否附带了原图（评估置信度时区分图文内容）
 
 
 # ==================== 辅助函数 ====================
@@ -93,6 +100,7 @@ def _turn_input(query: str) -> dict:
         "context": "",
         "answer": "",
         "confidence": None,    # 未评估（不要写成 0.0——那会被当成"评估结果是 0"）
+        "has_image": False,    # 本轮是否附图（每轮重置，避免上一轮的值留到这一轮）
     }
 
 
@@ -140,9 +148,10 @@ class RAGService:
             ("human", "{query}"),
         ])
         # 置信度评估
-        self.eval_prompt = ChatPromptTemplate.from_messages([    
+        self.eval_prompt = ChatPromptTemplate.from_messages([
             ("system", EVAL_SYSTEM_PROMPT),
-            ("human", "上下文：{context}\n\n问题：{query}\n\n回答：{answer}\n\n置信度（0-1）："),
+            ("human", "上下文：{context}\n\n问题：{query}\n\n回答：{answer}\n\n"
+                      "本轮是否附加了原图：{image_note}\n\n置信度（0-1）："),
         ])
         # 历史摘要
         self.summarize_prompt = ChatPromptTemplate.from_messages([  
@@ -167,6 +176,53 @@ class RAGService:
         scores = reranker.predict(pairs)
         ranked = sorted(zip(docs, scores), key=lambda x: x[1], reverse=True)
         return [doc for doc, s in ranked if s >= 0.3]
+
+    # ==================== 多模态：附带原图 ====================
+
+    def _build_image_block(self, state: RAGState) -> tuple[list[dict], list[dict]]:
+        """从命中的块里挑插图，渲染成 base64 内容块（最多两张）
+
+        图片挂在章节的最后一块上，所以从名次靠前的块里找【第一个带图的】，
+        而不是只看第一名。块里记录的位置可能多达几十个（小图标、装饰碎片都算），
+        按面积倒序取最大的两张——面积最大的通常是章节主图，碎片排到最后。
+        任何一步失败都静默跳过：图是增强项，不能拖垮回答。
+        """
+        if not settings.ENABLE_IMAGE_CONTEXT:
+            return [], []
+
+        upload_dir = Path(settings.UPLOAD_DIR)
+        for doc in state.get("documents", []):
+            images = doc.metadata.get("images") or []
+            if not images:
+                continue
+            pdf_path = upload_dir / str(doc.metadata.get("source", ""))
+            if not pdf_path.is_file():
+                continue
+
+            ranked = sorted(images, key=lambda im: im.get("w", 0) * im.get("h", 0),
+                            reverse=True)
+            blocks, metas = [], []
+            for img in ranked[:MAX_IMAGES_PER_ANSWER]:
+                try:
+                    png = render_png(str(pdf_path), img["page"], img["bbox"],
+                                     dpi=settings.IMAGE_RENDER_DPI)
+                except Exception as e:
+                    log_generate.warning("插图渲染失败（跳过）: %s: %s", type(e).__name__, e)
+                    continue
+                blocks.append({
+                    "type": "image_url",
+                    "image_url": {"url": "data:image/png;base64,"
+                                         + base64.b64encode(png).decode()},
+                })
+                metas.append({
+                    "page": img["page"],
+                    "kb": max(1, len(png) // 1024),
+                    "path": " > ".join(doc.metadata.get("path") or []),
+                })
+            if blocks:
+                return blocks, metas
+
+        return [], []
 
     # ==================== 构建 LangGraph ====================
 
@@ -378,10 +434,23 @@ class RAGService:
         # 把检索到的篇数直接写进文案：前端不用自己拼，也避免两处状态互相覆盖
         # 文案不带省略号 —— 动态省略号由前端画（引擎写了会变成双份）
         writer({"event": "progress", "data": f"正在参考 {len(state.get('sources', []))} 篇文档生成回答"})
+        messages = prompt_val.to_messages()
+        image_blocks, image_metas = self._build_image_block(state)
+        if image_blocks:
+            # 图片和问题放在同一条用户消息里：模型才知道这张图是在回答什么
+            messages[-1] = HumanMessage(content=[
+                {"type": "text", "text": messages[-1].content},
+                *image_blocks,
+            ])
+            log_generate.info("附带插图 %d 张: %s 第%s页 共%dKB",
+                              len(image_blocks), image_metas[0]["path"],
+                              "、".join(str(m["page"]) for m in image_metas),
+                              sum(m["kb"] for m in image_metas))
+
         full_answer = ""
         first_token_at: float | None = None
         try:
-            async for chunk in self.llm.astream(prompt_val):
+            async for chunk in self.llm.astream(messages):
                 token = chunk.content
                 if not token:
                     continue
@@ -407,6 +476,7 @@ class RAGService:
         # add_messages 自动追加到 messages，response_metadata 存入来源供 get_history 使用
         return {
             "answer": full_answer,
+            "has_image": bool(image_blocks),
             "messages": [AIMessage(
                 content=full_answer,
                 response_metadata={"sources": state.get("sources", [])},
@@ -473,6 +543,7 @@ class RAGService:
                 "context": context,
                 "query": state["query"],
                 "answer": state["answer"],
+                "image_note": "是" if state.get("has_image") else "否",
             })).strip())
             score = min(max(score, 0.0), 1.0)
         except (ValueError, AttributeError):

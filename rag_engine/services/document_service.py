@@ -29,6 +29,7 @@ from utils.file_utils import (
     save_upload,
 )
 from utils.embeddings import AliyunEmbeddings
+from utils.pdf_parser import parse_pdf
 from models.tables import Document
 from models.document import (
     DocumentUploadResponse,
@@ -133,17 +134,29 @@ class DocumentService:
         )
 
     def _index_chunks(self, saved_path: Path, doc_id: str, ext: str) -> int:
-        """同步部分：加载 → 附加元数据 → 分块 → 来源注入 → 嵌入写向量，返回块数"""
-        loader = detect_loader(str(saved_path), ext)
-        docs = loader.load()
-        # 向量 payload 只留检索和溯源要用的字段：文件哈希、上传时间这些
-        # 已经在 PG 的 documents 表里，重复存一份只会让 payload 变胖
-        for doc in docs:
-            doc.metadata.update({
+        """同步部分：加载 → 分块 → 附加元数据 → 来源注入 → 嵌入写向量，返回块数
+
+        PDF 先试结构化解析（按章节切、跨页表格拼回）；没有目录或解析失败时，
+        降级为通用加载器 + 固定长度切分。
+        """
+        chunks = parse_pdf(str(saved_path)) if ext == ".pdf" else None
+        if chunks:
+            # 结构化块本身就是最终粒度，不能再过 splitter——按章节切好的边界
+            # 一过固定长度切分就全废了，跨页表格也会被重新拦腰截断
+            logger.info("PDF 结构化解析命中: %s → %d 个块（不二次切分）",
+                        saved_path.name, len(chunks))
+        else:
+            docs = detect_loader(str(saved_path), ext).load()
+            chunks = self.text_splitter.split_documents(docs)
+
+        # metadata 统一在 chunk 上补：结构化解析直接产出 chunk，没有 docs 这一层。
+        # 对普通路径无行为差异——split_documents 会把 doc 的 metadata 复制给每个 chunk。
+        # payload 只留检索和溯源要用的字段：文件哈希、上传时间这些已经在 PG 的 documents 表里
+        for chunk in chunks:
+            chunk.metadata.update({
                 "doc_id": doc_id,
                 "source": saved_path.name,   # 实际保存名（同名时带 (1) 后缀）
             })
-        chunks = self.text_splitter.split_documents(docs)
         # 来源注入：每块正文前置 [文件名] 标识——多文档/多公司场景下检索与生成
         # 都能感知 chunk 归属，避免"薪资"这类通用语义跨文档串扰
         # （用文件名而非"提取标题"：零成本、格式统一、无需启发式）
