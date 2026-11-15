@@ -79,6 +79,48 @@ def _loads_json(text: str) -> dict:
     return json.loads(t)
 
 
+def _describe_stream_chunk(chunk) -> str:
+    """空流诊断用：把最后收到的 chunk 的完整字段压成一行
+
+    不能只查几个预设字段——模型把内容放进哪个字段取决于厂商实现，
+    查漏了就会误判成"什么都没有"。
+    """
+    if chunk is None:
+        return "（一个 chunk 都没收到）"
+
+    content = getattr(chunk, "content", None)
+    if isinstance(content, str):
+        content_desc = f"content=str(len={len(content)})"
+    else:
+        size = len(content) if hasattr(content, "__len__") else "?"
+        content_desc = f"content={type(content).__name__}(len={size})"
+
+    extra = getattr(chunk, "additional_kwargs", None) or {}
+    extra_desc = "additional={" + ", ".join(
+        f"{k}:{type(v).__name__}/{len(v) if hasattr(v, '__len__') else v}"
+        for k, v in extra.items()
+    ) + "}" if extra else "additional={}"
+
+    meta = getattr(chunk, "response_metadata", None) or {}
+    meta_desc = "meta={" + ", ".join(
+        f"{k}={str(v)[:40]}" for k, v in meta.items()
+    ) + "}" if meta else "meta={}"
+
+    return f"{content_desc} {extra_desc} {meta_desc}"
+
+
+def _reasoning_desc(usage: dict | None) -> str:
+    """从 usage_metadata 里取思考 token 数；取不到返回 "-"
+
+    百炼把思考用量放在 completion_tokens_details.reasoning_tokens，
+    LangChain 归一化到 output_token_details.reasoning。
+    """
+    if not usage:
+        return "-"
+    reasoning = (usage.get("output_token_details") or {}).get("reasoning")
+    return f"{reasoning}tok" if reasoning is not None else "-"
+
+
 def _turn_input(query: str) -> dict:
     """每轮开始时的初始状态（chat / chat_stream 共用）
 
@@ -165,7 +207,15 @@ class RAGService:
     # ==================== 重排序 ====================
 
     def _rerank(self, query: str, docs: list[Document]) -> list[Document]:
-        """Cross-Encoder 重排序：联合编码精排，比向量相似度更准"""
+        """Cross-Encoder 精排 + 两路排名 RRF 融合
+
+        docs 来自 similarity_search，顺序就是召回的 RRF 排名。
+        只用精排分排序时，精排会被主题带偏并完全覆盖召回信号：实测
+        “测距键在键盘哪里”这题，召回稳稳把 1.3.1 鍵盤排第 1，
+        精排却把 3.4 測距設置排到第 1，正确章节掉到第 4。
+        融合后两路名次各占一份权重：精排仍判断“相不相关”（0.3 阈值过滤），
+        但不再单独决定“谁更相关”。
+        """
         if len(docs) <= 1:
             return docs
 
@@ -174,6 +224,19 @@ class RAGService:
         reranker = get_reranker()
         pairs = [(query, doc.page_content) for doc in docs]
         scores = reranker.predict(pairs)
+
+        k = settings.RERANK_FUSION_K
+        if k > 0:
+            # 精排名次（1 起始）；召回名次就是 docs 的下标 + 1
+            order = sorted(range(len(docs)), key=lambda i: scores[i], reverse=True)
+            rerank_rank = {idx: rank for rank, idx in enumerate(order, 1)}
+            fused = [
+                (docs[i], scores[i], 1 / (k + i + 1) + 1 / (k + rerank_rank[i]))
+                for i in range(len(docs))
+            ]
+            fused.sort(key=lambda x: x[2], reverse=True)
+            return [doc for doc, score, _ in fused if score >= 0.3]
+
         ranked = sorted(zip(docs, scores), key=lambda x: x[1], reverse=True)
         return [doc for doc, s in ranked if s >= 0.3]
 
@@ -342,6 +405,7 @@ class RAGService:
         if not rewritten:
             log_rewrite.warning("改写结果为空，按原问题检索")
             return {"chitchat": False}
+        log_rewrite.debug("改写结果: %s", rewritten)
         log_rewrite.info("改写 %d→%d字 耗时=%.2fs",
                          len(state["query"]), len(rewritten), time.perf_counter() - started)
         return {"chitchat": False, "query": rewritten}
@@ -449,10 +513,27 @@ class RAGService:
 
         full_answer = ""
         first_token_at: float | None = None
+        chunk_count = 0
+        last_chunk = None
+        usage = None
+        last_beat = time.perf_counter()
+        beat_started = False
         try:
             async for chunk in self.llm.astream(messages):
+                chunk_count += 1
+                last_chunk = chunk
+                if chunk.usage_metadata:
+                    usage = chunk.usage_metadata
                 token = chunk.content
                 if not token:
+                    # 思考阶段的 chunk 只有 reasoning_content（LangChain 不保留），内容为空。
+                    # 第一次等满 3s 就提示"正在思考"（让用户看得到状态），之后每 10s 一次：
+                    # 10s 远小于 Java 的 60s 读超时，保证长思考不会把连接放死
+                    now = time.perf_counter()
+                    if now - last_beat >= (10 if beat_started else 3):
+                        writer({"event": "progress", "data": "正在思考"})
+                        last_beat = now
+                        beat_started = True
                     continue
                 if first_token_at is None:
                     first_token_at = time.perf_counter()
@@ -463,13 +544,15 @@ class RAGService:
             full_answer = "抱歉，回答生成失败（可能是内容审核拦截），请稍后重试或换个问法。"
             writer(full_answer)
         if not full_answer:
-            # 流正常结束但无内容（空流，模型偶发行为）：补兜底，避免空消息入库
-            logger.warning("generate_answer 空流：LLM 未产生任何内容")
+            # 空流是偶发的，靠这一行留下诊断依据，下次出现能分清是网络、审核还是思考模式
+            logger.warning("generate_answer 空流：收到 %d 个 chunk，带内容的 0 个；最后一块 %s",
+                           chunk_count, _describe_stream_chunk(last_chunk))
             full_answer = "抱歉，回答生成失败（模型未返回内容），请稍后重试或换个问法。"
             writer(full_answer)
 
-        log_generate.info("引用来源=%d 输出=%d字 首token=%.2fs 耗时=%.2fs",
+        log_generate.info("引用来源=%d 输出=%d字 思考=%s 首token=%.2fs 耗时=%.2fs",
                           len(state.get("sources", [])), len(full_answer),
+                          _reasoning_desc(usage),
                           (first_token_at - started) if first_token_at else 0.0,
                           time.perf_counter() - started)
 
@@ -537,18 +620,33 @@ class RAGService:
         # 回答出完到 done 之间有一段评估耗时：不提示的话看起来像卡住了
         get_stream_writer()({"event": "progress", "data": "正在评估回答置信度"})
 
-        chain = self.eval_prompt | self.fast_llm | StrOutputParser()
+        msg = None
         try:
-            score = float((await chain.ainvoke({
+            prompt_val = self.eval_prompt.invoke({
                 "context": context,
                 "query": state["query"],
                 "answer": state["answer"],
                 "image_note": "是" if state.get("has_image") else "否",
-            })).strip())
+            })
+            messages = prompt_val.to_messages()
+            # 评估器也看原图：位置、图标这类关键结论来自附图，只给文字它没法核实，
+            # 只能保守打低分。复用生成节点的选图逻辑，保证两边看的是同一张图
+            image_blocks, _ = self._build_image_block(state)
+            if image_blocks:
+                messages[-1] = HumanMessage(content=[
+                    {"type": "text", "text": messages[-1].content},
+                    *image_blocks,
+                ])
+            msg = await self.fast_llm.ainvoke(messages)
+            raw = msg.content if isinstance(msg.content, str) else str(msg.content)
+            score = float(raw.strip())
             score = min(max(score, 0.0), 1.0)
         except (ValueError, AttributeError):
             score = 0.5
-        log_confidence.info("score=%.2f 耗时=%.2fs", score, time.perf_counter() - started)
+        usage = msg.usage_metadata if msg is not None else None
+        log_confidence.info("score=%.2f 输入=%dtok 思考=%s 耗时=%.2fs",
+                            score, (usage or {}).get("input_tokens", 0),
+                            _reasoning_desc(usage), time.perf_counter() - started)
         return {"confidence": score}
 
     # ==================== 公开接口 ====================

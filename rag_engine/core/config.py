@@ -29,8 +29,24 @@ class Settings(BaseSettings):
     # 混合检索返回的候选数：dense 和 sparse 两个分支各召回这么多，融合后也是这么多
     # （Qdrant 的 prefetch limit 与最终 limit 由同一个参数决定），最后交给重排器精排
     TOP_K: int = 5
-    TEMPERATURE: float = 0.1       # LLM 温度，越低越保守（RAG 需要确定性回答）
-    MAX_TOKENS: int = 2000         # LLM 最大输出长度（1000 时详细回答被截断）
+    # 精排与召回的融合系数 k：score = 1/(k+召回名次) + 1/(k+精排名次)
+    # 只按精排排序时，精排的主题偏好会完全覆盖召回信号（实测把 RRF 第 1 的
+    # 正确章节压到第 4）；融合后两路名次都保留话语权。设 0 关闭融合，回到纯精排
+    RERANK_FUSION_K: int = 10
+    # 采样温度。注意：qwen3.8 系列在思考模式下会把小于 0.6 的值强制改成 0.6，
+    # 所以这里写 0.1 实际生效是 0.6——不要指望这个值能压低随机性
+    TEMPERATURE: float = 0.1
+    # LLM 最大输出长度。注意：混合思考模型的思考 token 也计入这里，
+    # 所以必须明显大于思考所需量，否则正文会被挤空（之前 2000 就被思考吃光过）
+    MAX_TOKENS: int = 8192
+    # 混合思考模型（qwen3.8 系列）默认开启思考：多轮对话的指代消解、看图定位这类
+    # 空间推理都依赖它，实测关掉后读图准确率明显下降。
+    # 先不设 thinking_budget，用日志里打印的实际思考 token 数决定上限
+    ENABLE_THINKING: bool = True
+    # 回答节点的思考强度：low / medium / xhigh（xhigh 是 qwen3.8 的默认值）。
+    # 对应 thinking_budget：low=4096，medium=16384，xhigh=262144。
+    # 只作用于回答模型，改写和置信度评估不受影响
+    REASONING_EFFORT: str = "low"
 
     # === PostgreSQL（会话状态 + 对话元数据） ===
     # 必填：不配则启动即报错（fail-fast，与 DASHSCOPE_API_KEY 一致）

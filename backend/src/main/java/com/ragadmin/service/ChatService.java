@@ -185,7 +185,10 @@ public class ChatService {
                 outputStream.flush();   // 每行 flush 保证实时到达（打字机效果）
             }
         } catch (Exception e) {
-            log.error("SSE 流读取/转发失败", e);
+            // 不能在这里吞掉异常：吞掉的话 relayStream 会当作流正常结束，
+            // 前端收不到 done/error 事件会一直转圈，半截回复还会被落库。
+            // 抛出去交给 relayStream 统一发 error 并跳过落库
+            throw new RuntimeException("SSE 流读取/转发失败", e);
         }
         return sources;
     }
