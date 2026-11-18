@@ -9,6 +9,7 @@ LLM 工厂
 from langchain.chat_models import init_chat_model
 from openai import APIConnectionError, RateLimitError
 from core.config import settings
+from utils.reasoning_chat import ReasoningChatOpenAI
 
 # 统一注入是否开启思考模式（qwen3.8 是混合思考模型，默认开启，见 config 里的说明）
 _EXTRA_BODY = {"enable_thinking": settings.ENABLE_THINKING}
@@ -26,9 +27,33 @@ def _with_retry(model):
     )
 
 
+def _build(model_name: str, temperature: float,
+           reasoning_effort: str | None = None,
+           extra_body: dict | None = None,
+           model_kwargs: dict | None = None,
+           keep_reasoning: bool = False):
+    """构造模型实例：默认走 init_chat_model，回答模型用保留思考的子类"""
+    kwargs = {
+        "api_key": settings.DASHSCOPE_API_KEY,
+        "base_url": settings.LLM_BASE_URL,
+        "temperature": temperature,
+        "max_tokens": settings.MAX_TOKENS,
+        "reasoning_effort": reasoning_effort,
+        "extra_body": extra_body or _EXTRA_BODY,
+    }
+    if model_kwargs:
+        kwargs["model_kwargs"] = model_kwargs
+    if keep_reasoning:
+        # init_chat_model 返回原生 ChatOpenAI，会丢掉 reasoning_content；
+        # 子类只给回答节点用，改写/评估不需要思考内容
+        return ReasoningChatOpenAI(model=model_name.split(":", 1)[-1], **kwargs)
+    return init_chat_model(model_name, **kwargs)
+
+
 def _with_fallback(model, model_kwargs: dict | None = None,
                    reasoning_effort: str | None = None,
-                   extra_body: dict | None = None):
+                   extra_body: dict | None = None,
+                   keep_reasoning: bool = False):
     """挂备用模型：主模型重试耗尽后自动切换
 
     model_kwargs 必须一起传：备用模型不带同样的参数的话，
@@ -36,43 +61,38 @@ def _with_fallback(model, model_kwargs: dict | None = None,
     reasoning_effort / extra_body 同理：主模型关思考、备用模型开思考的话，
     降级后的行为和速度会突然变化。
     """
-    backup = init_chat_model(
+    backup = _build(
         settings.LLM_BACKUP_MODEL_NAME,
-        api_key=settings.DASHSCOPE_API_KEY,
-        base_url=settings.LLM_BASE_URL,
-        temperature=settings.TEMPERATURE,
-        max_tokens=settings.MAX_TOKENS,
-        model_kwargs=model_kwargs or {},
+        settings.TEMPERATURE,
         reasoning_effort=reasoning_effort,
-        extra_body=extra_body or _EXTRA_BODY,
-        stream_usage=True,
+        extra_body=extra_body,
+        model_kwargs=model_kwargs,
+        keep_reasoning=keep_reasoning,
     )
     return model.with_fallbacks([backup])
 
 
 def _create(model_name: str, temperature: float | None = None,
             reasoning_effort: str | None = None,
-            extra_body: dict | None = None):
+            extra_body: dict | None = None,
+            keep_reasoning: bool = False):
     """按模型名创建实例，统一挂重试与备用模型"""
-    model = init_chat_model(
+    model = _build(
         model_name,
-        api_key=settings.DASHSCOPE_API_KEY,
-        base_url=settings.LLM_BASE_URL,
-        temperature=temperature if temperature is not None else settings.TEMPERATURE,
-        max_tokens=settings.MAX_TOKENS,
+        temperature if temperature is not None else settings.TEMPERATURE,
         reasoning_effort=reasoning_effort,
-        extra_body=extra_body or _EXTRA_BODY,
-        # 自定义 base_url 时 LangChain 默认不带 usage；打开后流式响应的最后一个
-        # chunk 才会带 token 用量（含思考 token），用于统计思考开销
-        stream_usage=True,
+        extra_body=extra_body,
+        keep_reasoning=keep_reasoning,
     )
     return _with_fallback(_with_retry(model), reasoning_effort=reasoning_effort,
-                          extra_body=extra_body)
+                          extra_body=extra_body, keep_reasoning=keep_reasoning)
 
 
 def create_llm(temperature: float | None = None):
-    """创建 LLM 实例：回答节点专用，思考强度取 REASONING_EFFORT"""
-    return _create(settings.LLM_MODEL_NAME, temperature, settings.REASONING_EFFORT)
+    """创建 LLM 实例：回答节点专用，思考强度取 REASONING_EFFORT，并保留思考内容"""
+    return _create(settings.LLM_MODEL_NAME, temperature,
+                   reasoning_effort=settings.REASONING_EFFORT,
+                   keep_reasoning=True)
 
 
 def create_fast_llm(temperature: float | None = None):

@@ -79,46 +79,6 @@ def _loads_json(text: str) -> dict:
     return json.loads(t)
 
 
-def _describe_stream_chunk(chunk) -> str:
-    """空流诊断用：把最后收到的 chunk 的完整字段压成一行
-
-    不能只查几个预设字段——模型把内容放进哪个字段取决于厂商实现，
-    查漏了就会误判成"什么都没有"。
-    """
-    if chunk is None:
-        return "（一个 chunk 都没收到）"
-
-    content = getattr(chunk, "content", None)
-    if isinstance(content, str):
-        content_desc = f"content=str(len={len(content)})"
-    else:
-        size = len(content) if hasattr(content, "__len__") else "?"
-        content_desc = f"content={type(content).__name__}(len={size})"
-
-    extra = getattr(chunk, "additional_kwargs", None) or {}
-    extra_desc = "additional={" + ", ".join(
-        f"{k}:{type(v).__name__}/{len(v) if hasattr(v, '__len__') else v}"
-        for k, v in extra.items()
-    ) + "}" if extra else "additional={}"
-
-    meta = getattr(chunk, "response_metadata", None) or {}
-    meta_desc = "meta={" + ", ".join(
-        f"{k}={str(v)[:40]}" for k, v in meta.items()
-    ) + "}" if meta else "meta={}"
-
-    return f"{content_desc} {extra_desc} {meta_desc}"
-
-
-def _reasoning_desc(usage: dict | None) -> str:
-    """从 usage_metadata 里取思考 token 数；取不到返回 "-"
-
-    百炼把思考用量放在 completion_tokens_details.reasoning_tokens，
-    LangChain 归一化到 output_token_details.reasoning。
-    """
-    if not usage:
-        return "-"
-    reasoning = (usage.get("output_token_details") or {}).get("reasoning")
-    return f"{reasoning}tok" if reasoning is not None else "-"
 
 
 def _turn_input(query: str) -> dict:
@@ -514,29 +474,40 @@ class RAGService:
         full_answer = ""
         first_token_at: float | None = None
         chunk_count = 0
-        last_chunk = None
-        usage = None
+        thinking_started_at: float | None = None
         last_beat = time.perf_counter()
         beat_started = False
         try:
             async for chunk in self.llm.astream(messages):
                 chunk_count += 1
-                last_chunk = chunk
-                if chunk.usage_metadata:
-                    usage = chunk.usage_metadata
+
+                # 思考片段来自 ReasoningChatOpenAI 的 additional_kwargs。
+                # 思考流本身就在占用连接，有它时不需要再发"正在思考"心跳
+                reasoning = (getattr(chunk, "additional_kwargs", None) or {}).get("reasoning_content")
+                if reasoning:
+                    if thinking_started_at is None:
+                        thinking_started_at = time.perf_counter()
+                    writer({"event": "thinking", "data": reasoning})
+                    last_beat = time.perf_counter()
+
                 token = chunk.content
                 if not token:
-                    # 思考阶段的 chunk 只有 reasoning_content（LangChain 不保留），内容为空。
-                    # 第一次等满 3s 就提示"正在思考"（让用户看得到状态），之后每 10s 一次：
-                    # 10s 远小于 Java 的 60s 读超时，保证长思考不会把连接放死
-                    now = time.perf_counter()
-                    if now - last_beat >= (10 if beat_started else 3):
-                        writer({"event": "progress", "data": "正在思考"})
-                        last_beat = now
-                        beat_started = True
+                    # 拿不到思考内容时（思考关闭 / 子类失效）才用心跳兜底：
+                    # 第一次等满 3s 提示"正在思考"，之后每 10s 一次，
+                    # 10s 远小于 Java 的 60s 读超时
+                    if not reasoning:
+                        now = time.perf_counter()
+                        if now - last_beat >= (10 if beat_started else 3):
+                            writer({"event": "progress", "data": "正在思考"})
+                            last_beat = now
+                            beat_started = True
                     continue
                 if first_token_at is None:
                     first_token_at = time.perf_counter()
+                    if thinking_started_at is not None:
+                        # 前端据此收起思考面板并显示耗时
+                        writer({"event": "thinking_done",
+                                "data": round(first_token_at - thinking_started_at, 1)})
                 full_answer += token
                 writer(token)
         except Exception as e:
@@ -544,15 +515,14 @@ class RAGService:
             full_answer = "抱歉，回答生成失败（可能是内容审核拦截），请稍后重试或换个问法。"
             writer(full_answer)
         if not full_answer:
-            # 空流是偶发的，靠这一行留下诊断依据，下次出现能分清是网络、审核还是思考模式
-            logger.warning("generate_answer 空流：收到 %d 个 chunk，带内容的 0 个；最后一块 %s",
-                           chunk_count, _describe_stream_chunk(last_chunk))
+            # 空流是偶发的，记下 chunk 数：0 个说明上游/网络问题；
+            # 收到了但没正文，多半是思考把预算吃光或内容被拦截
+            logger.warning("generate_answer 空流：收到 %d 个 chunk，均无正文", chunk_count)
             full_answer = "抱歉，回答生成失败（模型未返回内容），请稍后重试或换个问法。"
             writer(full_answer)
 
-        log_generate.info("引用来源=%d 输出=%d字 思考=%s 首token=%.2fs 耗时=%.2fs",
+        log_generate.info("引用来源=%d 输出=%d字 首token=%.2fs 耗时=%.2fs",
                           len(state.get("sources", [])), len(full_answer),
-                          _reasoning_desc(usage),
                           (first_token_at - started) if first_token_at else 0.0,
                           time.perf_counter() - started)
 
@@ -620,7 +590,6 @@ class RAGService:
         # 回答出完到 done 之间有一段评估耗时：不提示的话看起来像卡住了
         get_stream_writer()({"event": "progress", "data": "正在评估回答置信度"})
 
-        msg = None
         try:
             prompt_val = self.eval_prompt.invoke({
                 "context": context,
@@ -643,10 +612,7 @@ class RAGService:
             score = min(max(score, 0.0), 1.0)
         except (ValueError, AttributeError):
             score = 0.5
-        usage = msg.usage_metadata if msg is not None else None
-        log_confidence.info("score=%.2f 输入=%dtok 思考=%s 耗时=%.2fs",
-                            score, (usage or {}).get("input_tokens", 0),
-                            _reasoning_desc(usage), time.perf_counter() - started)
+        log_confidence.info("score=%.2f 耗时=%.2fs", score, time.perf_counter() - started)
         return {"confidence": score}
 
     # ==================== 公开接口 ====================
@@ -702,9 +668,11 @@ class RAGService:
         流式 RAG 查询（token 级），返回 SSE 事件流
 
         事件类型：
-          event: sources     → 检索到的文档来源
-          data: {"token":"x"} → 逐 token 输出（LLM 实时生成）
-          event: done        → 对话完成（含 confidence + conversation_id）
+          event: sources       → 检索到的文档来源
+          event: thinking      → 模型思考片段（逐段流式返回）
+          event: thinking_done → 思考结束，data 为思考耗时（秒）
+          data: {"token":"x"}  → 逐 token 输出（LLM 实时生成）
+          event: done          → 对话完成（含 confidence + conversation_id）
         """
         if conversation_id is None:
             conversation_id = str(uuid.uuid4())
@@ -719,6 +687,10 @@ class RAGService:
                 yield f"event: sources\ndata: {json.dumps(sources, ensure_ascii=False)}\n\n"
             elif isinstance(chunk, dict) and chunk.get("event") == "progress":
                 yield f"event: progress\ndata: {json.dumps({'status': chunk['data']}, ensure_ascii=False)}\n\n"
+            elif isinstance(chunk, dict) and chunk.get("event") == "thinking":
+                yield f"event: thinking\ndata: {json.dumps({'text': chunk['data']}, ensure_ascii=False)}\n\n"
+            elif isinstance(chunk, dict) and chunk.get("event") == "thinking_done":
+                yield f"event: thinking_done\ndata: {json.dumps({'seconds': chunk['data']})}\n\n"
             elif isinstance(chunk, str):
                 yield f"data: {json.dumps({'token': chunk})}\n\n"
 

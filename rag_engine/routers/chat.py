@@ -64,7 +64,7 @@ async def chat(
     "/chat/stream",
     summary="RAG 问答（流式 SSE）",
     description="与 /chat 功能相同，但以 Server-Sent Events 格式逐步返回结果。"
-                "事件类型：sources → answer → confidence → done。",
+                "事件类型：sources → thinking → answer → confidence → done。",
 )
 async def chat_stream(
     request: ChatRequest,

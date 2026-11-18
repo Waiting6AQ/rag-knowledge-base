@@ -385,6 +385,9 @@ async function send() {
     _id: nextId(), role: 'assistant', content: '', streaming: true,
     sources: null,
     progress: '正在处理...',   // 进度行文案，随 SSE 的 progress 事件更新
+    thinking: '',              // 模型思考过程（流式追加），仅本次会话展示
+    thinkingSeconds: null,     // 思考耗时，收到 thinking_done 后显示
+    thinkingOpen: true,        // 思考中默认展开，回答开始时自动收起
   })
   messages.value.push(aiMsg)
   scrollBottom()
@@ -434,6 +437,12 @@ async function send() {
           if (event === 'progress') {
             // 进度独立成行（不再写进气泡正文）：多阶段依次更新，也不会冲掉已显示的内容
             aiMsg.progress = data.status
+          } else if (event === 'thinking') {
+            // 思考片段逐段追加，面板跟随流式展开
+            aiMsg.thinking += data.text
+          } else if (event === 'thinking_done') {
+            aiMsg.thinkingSeconds = data.seconds
+            aiMsg.thinkingOpen = false   // 开始出正文，收起思考面板
           } else if (event === 'sources') {
             aiMsg.sources = data
           } else if (event === 'error') {
